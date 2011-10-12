@@ -47,6 +47,9 @@
     var cubeVertexColorBuffer;
     var cubeVertexIndexBuffer;
     
+    var xRotation = 0;
+    var yRotation = 0;
+    
     var INTERVAL = 30;
     var timeDelta;
     var currentTime;
@@ -76,9 +79,7 @@
         
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
-        
-        drawScene();
-        
+                
         setInterval(function() {
                     update();
                     drawScene();
@@ -90,6 +91,7 @@
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
+            gl.disable(CULL_FACE);
         } catch (e) {
         }
         if (!gl) {
@@ -258,13 +260,6 @@
     function degToRad(degrees) {
         return degrees * Math.PI / 180;
     }
-    
-    function abs(value) {
-        if (value < 0) {
-            value = -value;
-        }
-        return value;
-    }
            
     function checkKeys() {
         if (keyDown[39]) { // Right
@@ -287,12 +282,12 @@
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
         mat4.identity(mvMatrix);
         
-        mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
+        //mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
         
         mvPushMatrix();
-        mat4.rotate(mvMatrix, degToRad(mouseX), [0.0, 1.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(mouseY), [1.0, 0.0, 0.0]);
-
+        mat4.rotate(mvMatrix, degToRad(yRotation), [1.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(xRotation), [0.0, 1.0, 0.0]);
+        
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -312,6 +307,20 @@
         currentTime = new Date();
         timeDelta = currentTime - oldTime;
         fps = 1000 / timeDelta;
+        
+        if (mouseX) {
+            xRotation += mouseX / 40;
+            xRotation %= 360;
+        }
+        if (mouseY) {
+            yRotation += mouseY / 40;
+            debug("" + yRotation);
+            if (yRotation >= 90) {
+                yRotation = 90;
+            } else if (yRotation <= -90) {
+                yRotation = -90;
+            }
+        }
     }
     
 //EVENTS
