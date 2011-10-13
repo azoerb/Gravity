@@ -30,9 +30,42 @@
     }
 </script>
 
+<!--
+<script id="texture-shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying highp vec2 vTextureCoord;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aTextureCoord;
+    }
+</script>
+
+<script id="texture-shader-fs" type="x-shader/x-fragment">
+    varying highp vec2 vTextureCoord;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    }
+</script>
+-->
+
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+<script type="text/javascript" src="Vector.js"></script>
     
 <script type="text/javascript">
+    
+    var MOUSE_SENSITIVITY = 1;
+    var MOUSE_EXPONENT = 1.3;
+    
     
     var canvas;
     
@@ -47,8 +80,9 @@
     var cubeVertexColorBuffer;
     var cubeVertexIndexBuffer;
     
-    var xRotation = 0;
-    var yRotation = 0;
+    var xHairVertexPositionBuffer;
+    var xHairVertexColorBuffer;
+    var xHairVertexIndexBuffer;
     
     var INTERVAL = 30;
     var timeDelta;
@@ -57,14 +91,13 @@
     var fps;
         
     var keyDown = new Array();
-    var mouseX;
-    var mouseY;
+    var mousePos = new Vector(0.0, 0.0, 0.0);
+    
+    var playerPos = new Vector(0.0, 0.0, 0.0);
+    var playerRotation = new Vector(0.0, 0.0, 0.0);
+    
 
-
-//OBJECTS
-
-
-//INITIALIZATION    
+  
     function init() {
         canvas = document.getElementById("Canvas");
     
@@ -76,10 +109,11 @@
         initGL(canvas);
         initShaders();
         initBuffers();
+        //initTextures();
         
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
-                
+                        
         setInterval(function() {
                     update();
                     drawScene();
@@ -91,7 +125,10 @@
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
+            ////
             gl.disable(CULL_FACE);
+            ////
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         } catch (e) {
         }
         if (!gl) {
@@ -160,6 +197,41 @@
     }
 
     function initBuffers() {
+        // Crosshair
+        xHairVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexPositionBuffer);
+        xHairVertices = [-0.07, -0.07,  -1.0,
+                          0.07, -0.07,  -1.0,
+                          0.07,  0.07,  -1.0,
+                         -0.07,  0.07,  -1.0];
+                            
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairVertices), gl.STATIC_DRAW);
+        xHairVertexPositionBuffer.itemSize = 3;
+        xHairVertexPositionBuffer.numItems = 24;
+        
+        xHairVertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexColorBuffer);
+        xHairColor = [0.5, 0.5, 0.5, 1.0];
+        
+        var xHairUnpackedColors = [];
+        for (var j=0; j < 4; j++) {
+            xHairUnpackedColors = xHairUnpackedColors.concat(xHairColor);
+        }
+        
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairUnpackedColors), gl.STATIC_DRAW);
+        xHairVertexColorBuffer.itemSize = 4;
+        xHairVertexColorBuffer.numItems = 4;
+
+        xHairVertexIndexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, xHairVertexIndexBuffer);
+        var xHairVertexIndices = [0, 1, 2, 0, 2, 3];
+        
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(xHairVertexIndices), gl.STATIC_DRAW);
+        xHairVertexIndexBuffer.itemSize = 1;
+        xHairVertexIndexBuffer.numItems = 6;
+                    
+
+        // Cube
         cubeVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
         vertices = [
@@ -197,8 +269,8 @@
             -1.0, -1.0, -1.0,
             -1.0, -1.0,  1.0,
             -1.0,  1.0,  1.0,
-            -1.0,  1.0, -1.0
-        ];
+            -1.0,  1.0, -1.0 ];
+        
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         cubeVertexPositionBuffer.itemSize = 3;
         cubeVertexPositionBuffer.numItems = 24;
@@ -237,6 +309,22 @@
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
         cubeVertexIndexBuffer.itemSize = 1;
         cubeVertexIndexBuffer.numItems = 36;
+    }
+    
+    function initTextures() {
+        xhairTexture = gl.createTexture();
+        xhairImage = new Image();
+        xhairImage.onload = function() { handleTextureLoaded(xhairImage, xhairTexture); }
+        xhairImage.src = "Crosshair.png";
+    }
+
+    function handleTextureLoaded(image, texture) {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);
     }
 
     function mvPushMatrix() {
@@ -282,11 +370,13 @@
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
         mat4.identity(mvMatrix);
         
-        //mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
-        
+        // Draw Cube
         mvPushMatrix();
-        mat4.rotate(mvMatrix, degToRad(yRotation), [1.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(xRotation), [0.0, 1.0, 0.0]);
+        mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
+        
+        mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
         
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -296,9 +386,28 @@
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
         setMatrixUniforms();
+        
         gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
         
         mvPopMatrix();
+        
+        // Draw Crosshair
+        gl.enable(gl.BLEND);
+        gl.disable(gl.DEPTH_TEST);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, xHairVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexColorBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, xHairVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, xHairVertexIndexBuffer);
+        setMatrixUniforms();
+        
+        gl.drawElements(gl.TRIANGLES, xHairVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.disable(gl.BLEND);
     }
     
 
@@ -308,18 +417,38 @@
         timeDelta = currentTime - oldTime;
         fps = 1000 / timeDelta;
         
-        if (mouseX) {
-            xRotation += mouseX / 40;
-            xRotation %= 360;
+        // We have to save the sign of the mouse position since we can't raise a negative number
+        // to a partial exponent.  We re-multiply the result by the sign afterwards.
+        var xSign;
+        if (mousePos.x >= 0) {
+            xSign = 1;
+        } else {
+            xSign = -1;
         }
-        if (mouseY) {
-            yRotation += mouseY / 40;
-            debug("" + yRotation);
-            if (yRotation >= 90) {
-                yRotation = 90;
-            } else if (yRotation <= -90) {
-                yRotation = -90;
-            }
+        
+        playerRotation.x += xSign * Math.pow(Math.abs(mousePos.x) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        playerRotation.x %= 360;
+      
+          
+        var ySign;
+        if (mousePos.y >= 0) {
+            ySign = 1;
+        } else {
+            ySign = -1;
+        }
+        
+        playerRotation.y += ySign * Math.pow(Math.abs(mousePos.y) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        
+        if (playerRotation.y >= 90) {
+            playerRotation.y = 90;
+        } else if (playerRotation.y <= -90) {
+            playerRotation.y = -90;
+        }
+        
+        debug("" + mousePos.y);
+        
+        if (keyDown[38]) {
+            
         }
     }
     
@@ -333,11 +462,12 @@
     }
         
     function handleMouseMove(evt) {
-        mouseX = evt.x - canvas.offsetLeft - canvas.width / 2;
-        mouseY = evt.y - canvas.offsetTop - canvas.height / 2;
+        mousePos.x = evt.x - canvas.offsetLeft - canvas.width / 2;
+        mousePos.y = evt.y - canvas.offsetTop - canvas.height / 2;
 	}
     
     function handleMouseClick(evt) {
+    
 	}
     
     function debug(text) {
