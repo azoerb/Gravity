@@ -34,13 +34,16 @@
     #ifdef GL_ES
         precision highp float;
     #endif
-    
+
     varying vec2 vTextureCoord;
 
     uniform sampler2D uSampler;
 
     void main(void) {
         gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        if (gl_FragColor.a < .7) {
+            discard; // Discard the fragment
+        }
     }
 </script>
 
@@ -51,7 +54,7 @@
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
 
-    varying highp vec2 vTextureCoord;
+    varying vec2 vTextureCoord;
 
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
@@ -61,18 +64,21 @@
 
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 
+<script type="text/javascript" src="webgl-utils.js"></script>
+
 <script type="text/javascript" src="Vector.js"></script>
     
 <script type="text/javascript">
     
-    var MOUSE_SENSITIVITY = 1;
-    var MOUSE_EXPONENT = 1.3;
+    var MOUSE_SENSITIVITY = 1.3; // Higher = more sensitive
+    var MOUSE_EXPONENT = 1.3; // Higher = quicker ramp up
     
     var canvas;
     
 //OPEN GL VARS
     var gl;
     var shaderProgram;
+    var textureShaderProgram;
     
     var mvMatrix = mat4.create();
     var mvMatrixStack = [];
@@ -82,12 +88,12 @@
     var cubeVertexColorBuffer;
     var cubeVertexIndexBuffer;
     
-    var xHairVertexPositionBuffer;
-    var xHairVertexTextureCoordBuffer;
-    var xHairVertexIndexBuffer;
-    var xHairTexture;
+    var crosshairVertexPositionBuffer;
+    var crosshairVertexTextureCoordBuffer;
+    var crosshairVertexIndexBuffer;
+    var crosshairTexture;
     
-    var INTERVAL = 30;
+    var INTERVAL = 60;
     var timeDelta;
     var currentTime;
     var oldTime;
@@ -108,7 +114,7 @@
         document.onkeydown = handleKeyDown;
         document.onclick = handleMouseClick;
         document.onmousemove = handleMouseMove;
-        
+                
         webGLStart(canvas);
                         
         setInterval(function() {
@@ -120,14 +126,16 @@
     function webGLStart(canvas) {
         initGL(canvas);
         initShaders();
+        initTextures();
         initBuffers();
-        //initTextures();
         
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
-        ////
+        
+        //// Disable CullFace for now so that cube renders on both sides
         gl.disable(gl.CULL_FACE);
         ////
+        
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     }
@@ -137,8 +145,7 @@
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
-        } catch (e) {
-        }
+        } catch (e) {}
         if (!gl) {
             alert("Could not initialise WebGL");
         }
@@ -149,7 +156,7 @@
         if (!shaderScript) {
             return null;
         }
-        
+
         var str = "";
         var k = shaderScript.firstChild;
         while (k) {
@@ -158,7 +165,7 @@
             }
             k = k.nextSibling;
         }
-        
+
         var shader;
         if (shaderScript.type == "x-shader/x-fragment") {
             shader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -167,19 +174,20 @@
         } else {
             return null;
         }
-        
+
         gl.shaderSource(shader, str);
         gl.compileShader(shader);
-        
+
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
             alert(gl.getShaderInfoLog(shader));
             return null;
         }
-        
+
         return shader;
     }
 
     function initShaders() {
+        // Cube color shaders
         var fragmentShader = getShader(gl, "shader-fs");
         var vertexShader = getShader(gl, "shader-vs");
         
@@ -191,14 +199,9 @@
         if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
             alert("Could not initialise shaders");
         }
-        
-        gl.useProgram(shaderProgram);
-        
+                
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-        
-        /*shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);*/
         
         shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
         gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
@@ -206,44 +209,64 @@
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
         
-        //shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
-
+        // Texture Shaders
+        var textureFragmentShader = getShader(gl, "texture-shader-fs");
+        var textureVertexShader = getShader(gl, "texture-shader-vs");
+        
+        textureShaderProgram = gl.createProgram();
+        gl.attachShader(textureShaderProgram, textureVertexShader);
+        gl.attachShader(textureShaderProgram, textureFragmentShader);
+        gl.linkProgram(textureShaderProgram);
+        
+        if (!gl.getProgramParameter(textureShaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+        
+        textureShaderProgram.vertexPositionAttribute = gl.getAttribLocation(textureShaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(textureShaderProgram.vertexPositionAttribute);
+        
+        textureShaderProgram.textureCoordAttribute = gl.getAttribLocation(textureShaderProgram, "aTextureCoord");
+        gl.enableVertexAttribArray(textureShaderProgram.textureCoordAttribute);
+        
+        textureShaderProgram.pMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uPMatrix");
+        textureShaderProgram.mvMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uMVMatrix");
+        textureShaderProgram.samplerUniform = gl.getUniformLocation(textureShaderProgram, "uSampler");
     }
 
     function initBuffers() {
     // Crosshair
         // Vertex Position Buffer
-        xHairVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexPositionBuffer);
-        xHairVertices = [-1.0, -1.0,  0.0,
-                          1.0, -1.0,  0.0,
-                          1.0,  1.0,  0.0,
-                         -1.0,  1.0,  0.0];
+        crosshairVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexPositionBuffer);
+        crosshairVertices = [-1.0, -1.0,  0.0,
+                              1.0, -1.0,  0.0,
+                              1.0,  1.0,  0.0,
+                             -1.0,  1.0,  0.0];
                             
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairVertices), gl.STATIC_DRAW);
-        xHairVertexPositionBuffer.itemSize = 3;
-        xHairVertexPositionBuffer.numItems = 4;
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(crosshairVertices), gl.STATIC_DRAW);
+        crosshairVertexPositionBuffer.itemSize = 3;
+        crosshairVertexPositionBuffer.numItems = 4;
         
         // Text Coord Buffer
-        xHairVertexTextureCoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexTextureCoordBuffer);
-        var xHairTextureCoords = [0.0, 0.0,
-                                  1.0, 0.0,
-                                  1.0, 1.0,
-                                  0.0, 1.0];
+        crosshairVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexTextureCoordBuffer);
+        var crosshairTextureCoords = [0.0, 0.0,
+                                      1.0, 0.0,
+                                      1.0, 1.0,
+                                      0.0, 1.0];
                              
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairTextureCoords), gl.STATIC_DRAW);
-        xHairVertexTextureCoordBuffer.itemSize = 2;
-        xHairVertexTextureCoordBuffer.numItems = 4;
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(crosshairTextureCoords), gl.STATIC_DRAW);
+        crosshairVertexTextureCoordBuffer.itemSize = 2;
+        crosshairVertexTextureCoordBuffer.numItems = 4;
 
         // Indices Buffer
-        xHairVertexIndexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, xHairVertexIndexBuffer);
-        var xHairVertexIndices = [0, 1, 2, 0, 2, 3];
+        crosshairVertexIndexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, crosshairVertexIndexBuffer);
+        var crosshairVertexIndices = [0, 1, 2, 0, 2, 3];
         
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(xHairVertexIndices), gl.STATIC_DRAW);
-        xHairVertexIndexBuffer.itemSize = 1;
-        xHairVertexIndexBuffer.numItems = 6;
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(crosshairVertexIndices), gl.STATIC_DRAW);
+        crosshairVertexIndexBuffer.itemSize = 1;
+        crosshairVertexIndexBuffer.numItems = 6;
 
     // Cube
         // Vertex Position Buffer
@@ -329,18 +352,20 @@
     }
     
     function initTextures() {
-        xhairTexture = gl.createTexture();
-        xhairTexture.image = new Image();
-        xhairTexture.image.onload = function() { handleLoadedTexture(xhairTexture); }
-        xhairTexture.image.src = "Crosshair.png";
+        crosshairTexture = gl.createTexture();
+        crosshairTexture.image = new Image();
+        crosshairTexture.image.onload = function() { handleLoadedTexture(crosshairTexture); }
+        crosshairTexture.image.src = "Crosshair.png";
     }
 
     function handleLoadedTexture(texture) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.bindTexture(gl.TEXTURE_2D, null);
     }
 
@@ -357,9 +382,9 @@
         mvMatrix = mvMatrixStack.pop();
     }
 
-    function setMatrixUniforms() {
-        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+    function setMatrixUniforms(program) {
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
     }
 
     function degToRad(degrees) {
@@ -388,6 +413,7 @@
         mat4.identity(mvMatrix);
         
         // Draw Cube
+        gl.useProgram(shaderProgram);
         mvPushMatrix();
         mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
         
@@ -402,33 +428,34 @@
         gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-        setMatrixUniforms();
+        setMatrixUniforms(shaderProgram);
         
         gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
         
         mvPopMatrix();
         
         // Draw Crosshair
+        gl.useProgram(textureShaderProgram);
         mvPushMatrix();
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
         
         mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
         
-        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, xHairVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-        /*
-        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexTextureCoordBuffer);
-        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, xHairVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexPositionBuffer);
+        gl.vertexAttribPointer(textureShaderProgram.vertexPositionAttribute, crosshairVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexTextureCoordBuffer);
+        gl.vertexAttribPointer(textureShaderProgram.textureCoordAttribute, crosshairVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
         
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, xHairTexture);
-        gl.uniform1i(shaderProgram.samplerUniform, 0);
-        */
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, xHairVertexIndexBuffer);
-        setMatrixUniforms();
+        gl.bindTexture(gl.TEXTURE_2D, crosshairTexture);
+        gl.uniform1i(textureShaderProgram.samplerUniform, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, crosshairVertexIndexBuffer);
+        setMatrixUniforms(textureShaderProgram);
         
-        gl.drawElements(gl.TRIANGLES, xHairVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, crosshairVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
         gl.enable(gl.DEPTH_TEST);
         gl.disable(gl.BLEND);
@@ -500,7 +527,7 @@
 </script>
 </head>
 
-<body onload="init()" style="text-align: center">
+<body onload="init()" style="text-align:center">
     <canvas id="Canvas" width="800" height="600" style="border:1px solid #eeeeee">
         Your browser does not support the canvas element.
     </canvas>
