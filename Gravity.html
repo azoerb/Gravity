@@ -30,7 +30,20 @@
     }
 </script>
 
-<!--
+<script id="texture-shader-fs" type="x-shader/x-fragment">
+    #ifdef GL_ES
+        precision highp float;
+    #endif
+    
+    varying vec2 vTextureCoord;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    }
+</script>
+
 <script id="texture-shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -46,17 +59,6 @@
     }
 </script>
 
-<script id="texture-shader-fs" type="x-shader/x-fragment">
-    varying highp vec2 vTextureCoord;
-
-    uniform sampler2D uSampler;
-
-    void main(void) {
-        gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-    }
-</script>
--->
-
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 
 <script type="text/javascript" src="Vector.js"></script>
@@ -66,12 +68,12 @@
     var MOUSE_SENSITIVITY = 1;
     var MOUSE_EXPONENT = 1.3;
     
-    
     var canvas;
     
 //OPEN GL VARS
     var gl;
     var shaderProgram;
+    
     var mvMatrix = mat4.create();
     var mvMatrixStack = [];
     var pMatrix = mat4.create();
@@ -81,8 +83,9 @@
     var cubeVertexIndexBuffer;
     
     var xHairVertexPositionBuffer;
-    var xHairVertexColorBuffer;
+    var xHairVertexTextureCoordBuffer;
     var xHairVertexIndexBuffer;
+    var xHairTexture;
     
     var INTERVAL = 30;
     var timeDelta;
@@ -106,6 +109,15 @@
         document.onclick = handleMouseClick;
         document.onmousemove = handleMouseMove;
         
+        webGLStart(canvas);
+                        
+        setInterval(function() {
+                    update();
+                    drawScene();
+                    }, 1000 / INTERVAL);
+    }
+    
+    function webGLStart(canvas) {
         initGL(canvas);
         initShaders();
         initBuffers();
@@ -113,11 +125,11 @@
         
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
-                        
-        setInterval(function() {
-                    update();
-                    drawScene();
-                    }, 1000 / INTERVAL);
+        ////
+        gl.disable(gl.CULL_FACE);
+        ////
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
     }
 
     function initGL(canvas) {
@@ -125,10 +137,6 @@
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
-            ////
-            gl.disable(CULL_FACE);
-            ////
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         } catch (e) {
         }
         if (!gl) {
@@ -189,39 +197,46 @@
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
         
+        /*shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);*/
+        
         shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
         gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
         
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        
+        //shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+
     }
 
     function initBuffers() {
-        // Crosshair
+    // Crosshair
+        // Vertex Position Buffer
         xHairVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexPositionBuffer);
-        xHairVertices = [-0.07, -0.07,  -1.0,
-                          0.07, -0.07,  -1.0,
-                          0.07,  0.07,  -1.0,
-                         -0.07,  0.07,  -1.0];
+        xHairVertices = [-1.0, -1.0,  0.0,
+                          1.0, -1.0,  0.0,
+                          1.0,  1.0,  0.0,
+                         -1.0,  1.0,  0.0];
                             
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairVertices), gl.STATIC_DRAW);
         xHairVertexPositionBuffer.itemSize = 3;
-        xHairVertexPositionBuffer.numItems = 24;
+        xHairVertexPositionBuffer.numItems = 4;
         
-        xHairVertexColorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexColorBuffer);
-        xHairColor = [0.5, 0.5, 0.5, 1.0];
-        
-        var xHairUnpackedColors = [];
-        for (var j=0; j < 4; j++) {
-            xHairUnpackedColors = xHairUnpackedColors.concat(xHairColor);
-        }
-        
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairUnpackedColors), gl.STATIC_DRAW);
-        xHairVertexColorBuffer.itemSize = 4;
-        xHairVertexColorBuffer.numItems = 4;
+        // Text Coord Buffer
+        xHairVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexTextureCoordBuffer);
+        var xHairTextureCoords = [0.0, 0.0,
+                                  1.0, 0.0,
+                                  1.0, 1.0,
+                                  0.0, 1.0];
+                             
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(xHairTextureCoords), gl.STATIC_DRAW);
+        xHairVertexTextureCoordBuffer.itemSize = 2;
+        xHairVertexTextureCoordBuffer.numItems = 4;
 
+        // Indices Buffer
         xHairVertexIndexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, xHairVertexIndexBuffer);
         var xHairVertexIndices = [0, 1, 2, 0, 2, 3];
@@ -229,9 +244,9 @@
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(xHairVertexIndices), gl.STATIC_DRAW);
         xHairVertexIndexBuffer.itemSize = 1;
         xHairVertexIndexBuffer.numItems = 6;
-                    
 
-        // Cube
+    // Cube
+        // Vertex Position Buffer
         cubeVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
         vertices = [
@@ -275,6 +290,7 @@
         cubeVertexPositionBuffer.itemSize = 3;
         cubeVertexPositionBuffer.numItems = 24;
 
+        // Color Buffer
         cubeVertexColorBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
         colors = [
@@ -296,6 +312,7 @@
         cubeVertexColorBuffer.itemSize = 4;
         cubeVertexColorBuffer.numItems = 24;
 
+        // Indices Buffer
         cubeVertexIndexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
         var cubeVertexIndices = [
@@ -313,17 +330,17 @@
     
     function initTextures() {
         xhairTexture = gl.createTexture();
-        xhairImage = new Image();
-        xhairImage.onload = function() { handleTextureLoaded(xhairImage, xhairTexture); }
-        xhairImage.src = "Crosshair.png";
+        xhairTexture.image = new Image();
+        xhairTexture.image.onload = function() { handleLoadedTexture(xhairTexture); }
+        xhairTexture.image.src = "Crosshair.png";
     }
 
-    function handleTextureLoaded(image, texture) {
+    function handleLoadedTexture(texture) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.bindTexture(gl.TEXTURE_2D, null);
     }
 
@@ -392,15 +409,22 @@
         mvPopMatrix();
         
         // Draw Crosshair
+        mvPushMatrix();
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
         
+        mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
+        
         gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, xHairVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexColorBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, xHairVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        /*
+        gl.bindBuffer(gl.ARRAY_BUFFER, xHairVertexTextureCoordBuffer);
+        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, xHairVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
         
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, xHairTexture);
+        gl.uniform1i(shaderProgram.samplerUniform, 0);
+        */
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, xHairVertexIndexBuffer);
         setMatrixUniforms();
         
@@ -408,6 +432,7 @@
 
         gl.enable(gl.DEPTH_TEST);
         gl.disable(gl.BLEND);
+        mvPopMatrix();
     }
     
 
@@ -444,9 +469,7 @@
         } else if (playerRotation.y <= -90) {
             playerRotation.y = -90;
         }
-        
-        debug("" + mousePos.y);
-        
+                
         if (keyDown[38]) {
             
         }
