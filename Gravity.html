@@ -40,10 +40,11 @@
     uniform sampler2D uSampler;
 
     void main(void) {
-        gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-        if (gl_FragColor.a < .7) {
+        vec4 color = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        gl_FragColor = vec4 (color.r * color.a, color.g * color.a, color.b * color.a, color.a);
+        /*if (gl_FragColor.a < .7) {
             discard; // Discard the fragment
-        }
+        }*/
     }
 </script>
 
@@ -415,7 +416,7 @@
         // Draw Cube
         gl.useProgram(shaderProgram);
         mvPushMatrix();
-        mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
+        //mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
         
         mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
@@ -528,7 +529,7 @@
 </head>
 
 <body onload="init()" style="text-align:center">
-    <canvas id="Canvas" width="800" height="600" style="border:1px solid #eeeeee">
+    <canvas id="Canvas" width="800" height="600" style="border:1px solid #eeeeee ">
         Your browser does not support the canvas element.
     </canvas>
     <div id="debug"></div>
