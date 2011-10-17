@@ -64,7 +64,7 @@
 
 <script type="text/javascript" src="Vector.js"></script>
 
-<script type="text/javascript" src="Object.js"></script>
+<script type="text/javascript" src="GameObject.js"></script>
 
 <script type="text/javascript">
     
@@ -144,8 +144,8 @@
     }
     
     function createObjects() {
-        cube = new Object("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], false, false, null);
-        crosshair = new Object("Crosshair", 0, 0, 0, 0, true, true, "Crosshair.png");
+        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], false, false, null);
+        crosshair = new GameObject("Crosshair", 0, 0, 0, 0, true, true, "Crosshair.png");
     }
 
     function getShader(gl, id) {
@@ -231,42 +231,7 @@
     }
 
     function initBuffers() {
-    /*/ Crosshair
-        // Vertex Position Buffer
-        crosshairVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexPositionBuffer);
-        
-        crosshairVertices = [-1.0, -1.0,  0.0,
-                              1.0, -1.0,  0.0,
-                              1.0,  1.0,  0.0,
-                             -1.0,  1.0,  0.0];
-                            
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(crosshairVertices), gl.STATIC_DRAW);
-        crosshairVertexPositionBuffer.itemSize = 3;
-        crosshairVertexPositionBuffer.numItems = 4;
-        
-        // Text Coord Buffer
-        crosshairVertexTextureCoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexTextureCoordBuffer);
-        var crosshairTextureCoords = [0.0, 0.0,
-                                      1.0, 0.0,
-                                      1.0, 1.0,
-                                      0.0, 1.0];
-                             
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(crosshairTextureCoords), gl.STATIC_DRAW);
-        crosshairVertexTextureCoordBuffer.itemSize = 2;
-        crosshairVertexTextureCoordBuffer.numItems = 4;
-
-        // Indices Buffer
-        crosshairVertexIndexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, crosshairVertexIndexBuffer);
-        var crosshairVertexIndices = [0, 1, 2, 0, 2, 3];
-        
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(crosshairVertexIndices), gl.STATIC_DRAW);
-        crosshairVertexIndexBuffer.itemSize = 1;
-        crosshairVertexIndexBuffer.numItems = 6;
-*/
-
+    // Crosshair Buffers
         crosshair.vertices = [-1.0, -1.0,  0.0,
                               1.0, -1.0,  0.0,
                               1.0,  1.0,  0.0,
@@ -281,6 +246,7 @@
         
         crosshair.initObject();
         
+    // Cube Buffers
         cube.vertices = [-1.0, -1.0,  1.0, // Front face
                           1.0, -1.0,  1.0,
                           1.0,  1.0,  1.0,
@@ -374,44 +340,23 @@
         // Draw Cube
         gl.useProgram(shaderProgram);
         mvPushMatrix();
-        //mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
         
+        // Apply player rotation
         mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
 
         cube.draw(shaderProgram);
-        
         mvPopMatrix();
         
         // Draw Crosshair
         gl.useProgram(textureShaderProgram);
         mvPushMatrix();
         mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
-        /*gl.enable(gl.BLEND);
-        gl.disable(gl.DEPTH_TEST);
         
-        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexPositionBuffer);
-        gl.vertexAttribPointer(textureShaderProgram.vertexPositionAttribute, crosshairVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, crosshairVertexTextureCoordBuffer);
-        gl.vertexAttribPointer(textureShaderProgram.textureCoordAttribute, crosshairVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
-        
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, crosshairTexture);
-        gl.uniform1i(textureShaderProgram.samplerUniform, 0);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, crosshairVertexIndexBuffer);
-        setMatrixUniforms(textureShaderProgram);
-        
-        gl.drawElements(gl.TRIANGLES, crosshairVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.disable(gl.BLEND);*/
         crosshair.draw(textureShaderProgram);
         mvPopMatrix();
     }
-    
 
     function update() {
     	oldTime = currentTime;
