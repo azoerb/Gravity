@@ -42,9 +42,6 @@
     void main(void) {
         vec4 color = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
         gl_FragColor = vec4 (color.r * color.a, color.g * color.a, color.b * color.a, color.a);
-        /*if (gl_FragColor.a < .7) {
-            discard; // Discard the fragment
-        }*/
     }
 </script>
 
@@ -511,8 +508,13 @@
     }
         
     function handleMouseMove(evt) {
+    if (navigator.userAgent.indexOf("Firefox")!=-1) {
+        mousePos.x = evt.clientX - canvas.offsetLeft - canvas.width / 2;
+        mousePos.y = evt.clientY - canvas.offsetTop - canvas.height / 2;
+    } else {
         mousePos.x = evt.x - canvas.offsetLeft - canvas.width / 2;
         mousePos.y = evt.y - canvas.offsetTop - canvas.height / 2;
+    }
 	}
     
     function handleMouseClick(evt) {
