@@ -64,6 +64,10 @@
 
 <script type="text/javascript" src="Vector.js"></script>
 
+<script type="text/javascript" src="DrawableObject.js"></script>
+
+<script type="text/javascript" src="HUDObject.js"></script>
+
 <script type="text/javascript" src="GameObject.js"></script>
 
 <script type="text/javascript">
@@ -121,6 +125,7 @@
         
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.BLEND);
         
         //// Disable CullFace for now so that cube renders on both sides
         gl.disable(gl.CULL_FACE);
@@ -145,7 +150,7 @@
     
     function createObjects() {
         cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], false, false, null);
-        crosshair = new GameObject("Crosshair", 0, 0, 0, 0, true, true, "Crosshair.png");
+        crosshair = new HUDObject("Crosshair.png");
     }
 
     function getShader(gl, id) {
@@ -341,10 +346,13 @@
         gl.useProgram(shaderProgram);
         mvPushMatrix();
         
-        // Apply player rotation
+        // Apply player transformations
+        //mat4.translate(mvMatrix, [0.0, 0.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
+        
+        //mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
 
         cube.draw(shaderProgram);
         mvPopMatrix();
