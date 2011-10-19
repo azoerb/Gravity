@@ -74,6 +74,7 @@
     
     var MOUSE_SENSITIVITY = 1.3; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.3; // Higher = quicker ramp up
+    var MOVEMENT_SPEED = 0.1;
     
     var canvas;
     
@@ -323,55 +324,24 @@
            
     function checkKeys() {
         if (keyDown[39]) { // Right
+            playerPos.x += MOVEMENT_SPEED;
         }
         
         if (keyDown[37]) { // Left
+            playerPos.x -= MOVEMENT_SPEED;
         }
         
         if (keyDown[38]) { // Up
+            playerPos.z += MOVEMENT_SPEED;
         }
         
         if (keyDown[40]) { // Down
+            playerPos.z -= MOVEMENT_SPEED;
         }
+        debug("" + playerPos.x);
     }
     
-    function drawScene() {
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        
-        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-        mat4.identity(mvMatrix);
-        
-        // Draw Cube
-        gl.useProgram(shaderProgram);
-        mvPushMatrix();
-        
-        // Apply player transformations
-        //mat4.translate(mvMatrix, [0.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
-        
-        //mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
-
-        cube.draw(shaderProgram);
-        mvPopMatrix();
-        
-        // Draw Crosshair
-        gl.useProgram(textureShaderProgram);
-        mvPushMatrix();
-        mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
-        
-        crosshair.draw(textureShaderProgram);
-        mvPopMatrix();
-    }
-
-    function update() {
-    	oldTime = currentTime;
-        currentTime = new Date();
-        timeDelta = currentTime - oldTime;
-        fps = 1000 / timeDelta;
-        
+    function checkMouse() {
         // We have to save the sign of the mouse position since we can't raise a negative number
         // to a partial exponent.  We re-multiply the result by the sign afterwards.
         var xSign;
@@ -399,10 +369,50 @@
         } else if (playerRotation.y <= -90) {
             playerRotation.y = -90;
         }
+    }
+    
+    function drawScene() {
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+        mat4.identity(mvMatrix);
+        
+        // Draw Cube
+        gl.useProgram(shaderProgram);
+        mvPushMatrix();
+        
+        // Apply player transformations
+        mat4.translate(mvMatrix, [0.0, 0.2, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
+        
+        mat4.translate(mvMatrix, [playerPos.x, playerPos.y, playerPos.z]);
+        
+        mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
+
+        cube.draw(shaderProgram);
+        mvPopMatrix();
+        
+        // Draw Crosshair
+        gl.useProgram(textureShaderProgram);
+        mvPushMatrix();
+        mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
+        
+        crosshair.draw(textureShaderProgram);
+        mvPopMatrix();
+    }
+
+    function update() {
+    	oldTime = currentTime;
+        currentTime = new Date();
+        timeDelta = currentTime - oldTime;
+        fps = 1000 / timeDelta;
+        
+        checkMouse();
                 
-        if (keyDown[38]) {
-            
-        }
+        checkKeys();
     }
     
     function handleKeyDown(evt) {
