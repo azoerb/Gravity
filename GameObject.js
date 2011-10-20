@@ -14,6 +14,8 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
     this.isTextured = isTextured;
     
     this.isHudObject = isHudObject;
+	
+	this.isModel = false;
     
     this.texture;
     this.textureImg = textureImg;
@@ -26,9 +28,74 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
     
     this.textCoordsBuffer;
     this.textCoords = []; // Texture coordinates
+	
+	this.normBuffer;
+	this.normals = [];
     
     this.indicesBuffer;
     this.indices = [];   
+	
+	this.loadModel = function(path) {
+		that.isModel = true;
+		var result = $.ajax({
+						url: path,
+						async: false
+					 }).responseText;
+		var lines = result.split('\n');
+		var v = [];
+		var n = [];
+		var t = [];
+		for (var i = 0; i < lines.length; i++) {
+			if (lines[i][0] == 'v') {
+				if (lines[i][1] == ' ') {
+					var array = lines[i].split(" ");
+					for (var j = 1; j <= 3; j++) {
+						v[v.length] = parseFloat(array[j]);
+						//console.log(array[j]);
+					}
+				}
+				else if (lines[i][1] == 't') {
+						var array = lines[i].split(" ");
+						for (var j = 1; j <= 2; j++) {
+							t[t.length] = parseFloat(array[j]);
+						}
+				}
+				else if (lines[i][1] == 'n') {
+					var array = lines[i].split(" ");
+					for (var j = 1; j <= 3; j++) {
+						n[n.length] = parseFloat(array[j]);
+					}
+				}
+				else {
+					console.log("Unknown line in model: " + name + " Line: " + i );
+				}
+			}
+			else if (lines[i][0] == 'f') {
+				var array = lines[i].split(" ");
+				for (var j = 1; j <= 3; j++) {
+					var values = array[j].split("/");
+					that.vertices[that.vertices.length] = v[3 * (parseFloat(values[0]) - 1)];
+		
+					that.vertices[that.vertices.length] = v[(3 * (parseFloat(values[0]) - 1)) + 1];
+				
+					that.vertices[that.vertices.length] = v[(3 * (parseFloat(values[0]) - 1)) + 2];
+					
+					that.textCoords[that.textCoords.length] = t[2 * (parseFloat(values[1]) - 1)];
+					//console.log(that.textCoords[that.textCoords.length - 1]);
+					that.textCoords[that.textCoords.length] = t[2 * (parseFloat(values[1]) - 1) + 1];
+					//console.log(that.textCoords[that.textCoords.length - 1]);
+					//that.normals[that.normals.length] = n[parseFloat(values[2]) - 1];
+					that.indices[that.indices.length] = parseFloat(parseFloat(values[0] - 1));
+					//console.log("index " + (that.indices[that.indices.length - 1]));
+					
+					}
+				
+			}
+		
+		}
+		console.log(that.vertices.length);
+		console.log(that.indices.length);
+	}
     
     this.initObject = function() {
         that.vertexBuffer = gl.createBuffer();
@@ -38,6 +105,7 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
         that.vertexBuffer.numItems = that.vertices.length / 3;
         
         if (that.isTextured) {
+			console.log("here");
             that.textCoordsBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, that.textCoordsBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(that.textCoords), gl.STATIC_DRAW);
@@ -105,8 +173,11 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
         
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, that.indicesBuffer);
         setMatrixUniforms(shaderProgram);
-        
-        gl.drawElements(gl.TRIANGLES, that.indicesBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+		if (that.isModel) {
+			gl.drawArrays(gl.TRIANGLES, 0, that.vertexBuffer.numItems);
+		} else {
+			gl.drawElements(gl.TRIANGLES, that.indicesBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+		}
         
         if (that.isHudObject) {
             gl.enable(gl.DEPTH_TEST);
