@@ -67,8 +67,6 @@
 
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 
-<script type="text/javascript" src="Vector.js"></script>
-
 <script type="text/javascript" src="DrawableObject.js"></script>
 
 <script type="text/javascript" src="HUDObject.js"></script>
@@ -99,10 +97,11 @@
     var fps;
         
     var keyDown = new Array();
-    var mousePos = new Vector(0.0, 0.0, 0.0);
+    var mousePos = vec3.create();
     
-    var playerPos = new Vector(0.0, 0.0, 0.0);
-    var playerRotation = new Vector(0.0, 0.0, 0.0);
+    var playerLocalOffset = vec3.create();
+    var playerGlobalPos = vec3.create();
+    var playerRotation = vec3.create();
     
     var cube;
     var crosshair;
@@ -333,51 +332,50 @@
     }
            
     function checkKeys() {
-        if (keyDown[39]) { // Right
-            playerPos.x += MOVEMENT_SPEED;
+        if (keyDown[68]) { // Right
+            playerLocalOffset[0] += MOVEMENT_SPEED;
         }
         
-        if (keyDown[37]) { // Left
-            playerPos.x -= MOVEMENT_SPEED;
+        if (keyDown[65]) { // Left
+            playerLocalOffset[0] -= MOVEMENT_SPEED;
         }
         
-        if (keyDown[38]) { // Up
-            playerPos.z += MOVEMENT_SPEED;
+        if (keyDown[87]) { // Up
+            playerLocalOffset[2] += MOVEMENT_SPEED;
         }
         
-        if (keyDown[40]) { // Down
-            playerPos.z -= MOVEMENT_SPEED;
+        if (keyDown[83]) { // Down
+            playerLocalOffset[2] -= MOVEMENT_SPEED;
         }
-        debug("" + playerPos.x);
     }
     
     function checkMouse() {
         // We have to save the sign of the mouse position since we can't raise a negative number
         // to a partial exponent.  We re-multiply the result by the sign afterwards.
         var xSign;
-        if (mousePos.x >= 0) {
+        if (mousePos[0] >= 0) {
             xSign = 1;
         } else {
             xSign = -1;
         }
         
-        playerRotation.x += xSign * Math.pow(Math.abs(mousePos.x) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-        playerRotation.x %= 360;
+        playerRotation[0] += xSign * Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        playerRotation[0] %= 360;
       
           
         var ySign;
-        if (mousePos.y >= 0) {
+        if (mousePos[1] >= 0) {
             ySign = 1;
         } else {
             ySign = -1;
         }
         
-        playerRotation.y += ySign * Math.pow(Math.abs(mousePos.y) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        playerRotation[1] += ySign * Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
         
-        if (playerRotation.y >= 90) {
-            playerRotation.y = 90;
-        } else if (playerRotation.y <= -90) {
-            playerRotation.y = -90;
+        if (playerRotation[1] >= 90) {
+            playerRotation[1] = 90;
+        } else if (playerRotation[1] <= -90) {
+            playerRotation[1] = -90;
         }
     }
     
@@ -394,11 +392,11 @@
         
         // Apply player transformations
         mat4.translate(mvMatrix, [0.0, 0.2, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation[1]), [1.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation[0]), [0.0, 1.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation[2]), [0.0, 0.0, 1.0]);
         
-        mat4.translate(mvMatrix, [playerPos.x, playerPos.y, playerPos.z]);
+        mat4.translate(mvMatrix, [playerGlobalPos[0], playerGlobalPos[1], playerGlobalPos[2]]);
         
 		mvPushMatrix();
         mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
@@ -433,6 +431,23 @@
         checkMouse();
                 
         checkKeys();
+        
+        // Apply the local player offset to the global player coords
+        playerGlobalPos[0] += (playerLocalOffset[0] * mvMatrix[0] +
+                              playerLocalOffset[1] * mvMatrix[4] +
+                              playerLocalOffset[2] * mvMatrix[8]);
+                              
+        playerGlobalPos[1] += (playerLocalOffset[0] * mvMatrix[1] +
+                              playerLocalOffset[1] * mvMatrix[5] +
+                              playerLocalOffset[2] * mvMatrix[9]);
+                              
+        playerGlobalPos[2] += (playerLocalOffset[0] * mvMatrix[2] +
+                              playerLocalOffset[1] * mvMatrix[6] +
+                              playerLocalOffset[2] * mvMatrix[10]);
+        
+        playerLocalOffset[0] = 0.0;
+        playerLocalOffset[1] = 0.0;
+        playerLocalOffset[2] = 0.0;
     }
     
     function handleKeyDown(evt) {
@@ -444,14 +459,14 @@
     }
         
     function handleMouseMove(evt) {
-    if (navigator.userAgent.indexOf("Firefox")!=-1) {
-        mousePos.x = evt.clientX - canvas.offsetLeft - canvas.width / 2;
-        mousePos.y = evt.clientY - canvas.offsetTop - canvas.height / 2;
-    } else {
-        mousePos.x = evt.x - canvas.offsetLeft - canvas.width / 2;
-        mousePos.y = evt.y - canvas.offsetTop - canvas.height / 2;
+        if (navigator.userAgent.indexOf("Firefox")!=-1) {
+            mousePos[0] = evt.clientX - canvas.offsetLeft - canvas.width / 2;
+            mousePos[1] = evt.clientY - canvas.offsetTop - canvas.height / 2;
+        } else {
+            mousePos[0] = evt.x - canvas.offsetLeft - canvas.width / 2;
+            mousePos[1] = evt.y - canvas.offsetTop - canvas.height / 2;
+        }
     }
-	}
     
     function handleMouseClick(evt) {
     
