@@ -405,13 +405,14 @@
 
         cube.draw(shaderProgram);
 		mvPopMatrix();
+        
 		mvPushMatrix();
-		 mat4.translate(mvMatrix, [0, -0.2, -0.3]);
+        mat4.translate(mvMatrix, [0, -0.2, -0.3]);
 		mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
 		
-		 gl.useProgram(textureShaderProgram);
+        gl.useProgram(textureShaderProgram);
 		test.draw(textureShaderProgram);
-		mvPopMatrix();
+        mvPopMatrix();
         mvPopMatrix();
         
         // Draw Crosshair
