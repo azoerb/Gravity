@@ -1,9 +1,9 @@
-function GameObject(name, localPosition, mass, gravityVector, rotationVector, isTextured, isHudObject, textureImg) {
+function GameObject(name, globalPosition, mass, gravityVector, rotationVector, isTextured, isHudObject, textureImg) {
     var that = this;
     
     this.name = name; // Name of Object
     
-    this.localPosition = localPosition; // Vec3 in local coords
+    this.globalPosition = globalPosition; // Vec3 in local coords
     
     this.mass = mass; // Mass of object in kg
     
@@ -91,9 +91,6 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
 			}
 		
 		}
-		console.log(that.vertices.length);
-		console.log(that.indices.length);
-		console.log(that.normals.length);
 	}
     
     this.initObject = function() {
@@ -110,7 +107,6 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
         that.normalBuffer.numItems = that.normals.length / 3;
 		
         if (that.isTextured) {
-			console.log("here");
             that.textCoordsBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, that.textCoordsBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(that.textCoords), gl.STATIC_DRAW);

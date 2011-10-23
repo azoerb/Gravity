@@ -163,9 +163,13 @@
     var crosshair;
 	var test;
 	
-	var ambientLight = [0.0, 0.0, 0.0];
-	var lightDir = [1.0, 0.0, 0.0];
-	var lightColor = [0.7, 0.7, 0.7];
+    var ambientLight = [0.7, 0.7, 0.7];
+    var lightDir = [0.0, 0.0, 0.0];
+    var lightColor = [0.7, 0.7, 0.7];
+    
+    var dist = 0;
+    var prevTime = 0;
+    var fall = false;
 	
   
     function init() {
@@ -217,10 +221,11 @@
     }
     
     function createObjects() {
-        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], false, false, null);
+        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
+        cube.loadModel("models/Level1.obj");
         crosshair = new HUDObject("textures/Crosshair.png");
-		test = new GameObject("test", [0.0, 0.0, 0.5], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "./textures/ball11.png");
-		test.loadModel("models/ball.obj");
+		test = new GameObject("test", [0.0, 0.0, 0.5], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
+		test.loadModel("models/cube.obj");
     }
 
     function getShader(gl, id) {
@@ -305,7 +310,7 @@
         textureShaderProgram.mvMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uMVMatrix");
         textureShaderProgram.samplerUniform = gl.getUniformLocation(textureShaderProgram, "uSampler");
 		
-		 // Light Shaders
+        // Light Shaders
         var lightFragmentShader = getShader(gl, "light-shader-fs");
         var lightVertexShader = getShader(gl, "light-shader-vs");
         
@@ -334,7 +339,6 @@
 		lightShaderProgram.ambientColorUniform = gl.getUniformLocation(lightShaderProgram, "uAmbientColor");
         lightShaderProgram.pointLightingLocationUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingLocation");
         lightShaderProgram.pointLightingColorUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingColor");
-		
     }
 
     function initBuffers() {
@@ -352,51 +356,6 @@
         crosshair.indices = [0, 1, 2, 0, 2, 3];
         
         crosshair.initObject();
-        
-    // Cube Buffers
-        cube.vertices = [-1.0,  0.0,  1.0, // Front face
-                          1.0,  0.0,  1.0,
-                          1.0,  1.0,  1.0,
-                         -1.0,  1.0,  1.0,
-                     
-                         -1.0,  0.0, -1.0, // Back face
-                         -1.0,  1.0, -1.0,
-                          1.0,  1.0, -1.0,
-                          1.0,  0.0, -1.0,
-                     
-                         -1.0,  1.0, -1.0, // Top face
-                         -1.0,  1.0,  1.0,
-                          1.0,  1.0,  1.0,
-                          1.0,  1.0, -1.0,
-                     
-                         -1.0,  0.0, -1.0, // Bottom face
-                          1.0,  0.0, -1.0,
-                          1.0,  0.0,  1.0,
-                         -1.0,  0.0,  1.0,
-                     
-                          1.0,  0.0, -1.0, // Right face
-                          1.0,  1.0, -1.0,
-                          1.0,  1.0,  1.0,
-                          1.0,  0.0,  1.0,
-                     
-                         -1.0,  0.0, -1.0, // Left face
-                         -1.0,  0.0,  1.0,
-                         -1.0,  1.0,  1.0,
-                         -1.0,  1.0, -1.0 ];
-                     
-        cube.colors = [[1.0, 0.0, 0.0, 1.0], // Front face
-                       [1.0, 1.0, 0.0, 1.0], // Back face
-                       [0.0, 1.0, 0.0, 1.0], // Top face
-                       [1.0, 0.5, 0.5, 1.0], // Bottom face
-                       [1.0, 0.0, 1.0, 1.0], // Right face
-                       [0.0, 0.0, 1.0, 1.0]];  // Left face
-                   
-        cube.indices = [0, 1, 2,      0, 2, 3,    // Front face
-                        4, 5, 6,      4, 6, 7,    // Back face
-                        8, 9, 10,     8, 10, 11,  // Top face
-                        12, 13, 14,   12, 14, 15, // Bottom face
-                        16, 17, 18,   16, 18, 19, // Right face
-                        20, 21, 22,   20, 22, 23];  // Left face
         
         cube.initObject();
 		test.initObject();
@@ -489,7 +448,7 @@
         mat4.identity(mvMatrix);
         
         // Draw Cube
-        gl.useProgram(shaderProgram);
+        gl.useProgram(lightShaderProgram);
         mvPushMatrix();
         
         // Apply player transformations
@@ -500,21 +459,21 @@
         
         mat4.translate(mvMatrix, [playerGlobalPosition[0], playerGlobalPosition[1], playerGlobalPosition[2]]);
 
-        cube.draw(shaderProgram);
+        cube.draw(lightShaderProgram);
 		
-        // Draw Pool Ball
+        //
         mvPushMatrix();
-        mat4.translate(mvMatrix, [0, 0.3, -0.3]);
-		mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
+        mat4.translate(mvMatrix, [0, -0.2, -1]);
+		mat4.translate(mvMatrix, [0, -dist, 0]);
 		
-        gl.useProgram(lightShaderProgram);
-		test.draw(lightShaderProgram);
+        test.draw(lightShaderProgram);
+        
 		mvPopMatrix();
         mvPopMatrix();
         
         // Draw Crosshair
-        gl.useProgram(textureShaderProgram);
         mvPushMatrix();
+        gl.useProgram(textureShaderProgram);
         mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
         
         crosshair.draw(textureShaderProgram);
@@ -527,9 +486,37 @@
         timeDelta = currentTime - oldTime;
         fps = 1000 / timeDelta;
         
+        if(!checkCollision(test,cube,0,-0.2-dist,-0.3)) {
+        	objAnimate();
+        }
+        
         checkMouse();
                 
         checkKeys();
+    }
+    
+    function objAnimate() {
+        if (fall) {
+            var currTime = new Date().getTime();
+            if(prevTime != 0) {
+                var elapsed = (currTime - prevTime);
+                dist += 9.8 * (elapsed) / 5000.0;
+            }
+            prevTime = currTime;
+        }
+    }
+    
+    function checkCollision(obj1,obj2,x,y,z) {
+    	//console.log(x,z);
+    	//check each vertex to see if it's hitting anything else
+    	for(i=0;i<obj1.vertices.length;i+=3){
+    		for(j=0;j<obj2.vertices.length;j+=3){
+    			if((Math.abs(obj1.vertices[i+1]+y-obj2.vertices[j+1])<0.02)){
+    				//console.log("YES!!");
+    				return true;
+    			}
+    		}
+    	}
     }
     
     function handleKeyDown(evt) {
@@ -551,7 +538,7 @@
 	}
     
     function handleMouseClick(evt) {
-    
+        fall = true;
 	}
     
     function debug(text) {
