@@ -130,15 +130,16 @@
 
 <script type="text/javascript">
     
-    var MOUSE_SENSITIVITY = 0.5; // Higher = more sensitive
+    var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.3; // Higher = quicker ramp up
-    var MOVEMENT_SPEED = 0.1;
+    var MOVEMENT_SPEED = 0.07;
     
     var canvas;
     
 //OPEN GL VARS
     var gl;
     var shaderProgram;
+    var lightShaderProgram;
     var textureShaderProgram;
     
     var mvMatrix = mat4.create();
@@ -192,6 +193,7 @@
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.BLEND);
+        gl.enable(gl.TEXTURE_2D);
         
         //// Disable CullFace for now so that cube renders on both sides
         gl.disable(gl.CULL_FACE);
@@ -316,7 +318,6 @@
             console.log("Could not initialise shaders");
         }
         
-        
 		lightShaderProgram.vertexPositionAttribute = gl.getAttribLocation(lightShaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(lightShaderProgram.vertexPositionAttribute);
 
@@ -333,7 +334,6 @@
 		lightShaderProgram.ambientColorUniform = gl.getUniformLocation(lightShaderProgram, "uAmbientColor");
         lightShaderProgram.pointLightingLocationUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingLocation");
         lightShaderProgram.pointLightingColorUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingColor");
-		
 		
     }
 
@@ -354,33 +354,33 @@
         crosshair.initObject();
         
     // Cube Buffers
-        cube.vertices = [-1.0, -1.0,  1.0, // Front face
-                          1.0, -1.0,  1.0,
+        cube.vertices = [-1.0,  0.0,  1.0, // Front face
+                          1.0,  0.0,  1.0,
                           1.0,  1.0,  1.0,
                          -1.0,  1.0,  1.0,
                      
-                         -1.0, -1.0, -1.0, // Back face
+                         -1.0,  0.0, -1.0, // Back face
                          -1.0,  1.0, -1.0,
                           1.0,  1.0, -1.0,
-                          1.0, -1.0, -1.0,
+                          1.0,  0.0, -1.0,
                      
                          -1.0,  1.0, -1.0, // Top face
                          -1.0,  1.0,  1.0,
                           1.0,  1.0,  1.0,
                           1.0,  1.0, -1.0,
                      
-                         -1.0, -1.0, -1.0, // Bottom face
-                          1.0, -1.0, -1.0,
-                          1.0, -1.0,  1.0,
-                         -1.0, -1.0,  1.0,
+                         -1.0,  0.0, -1.0, // Bottom face
+                          1.0,  0.0, -1.0,
+                          1.0,  0.0,  1.0,
+                         -1.0,  0.0,  1.0,
                      
-                          1.0, -1.0, -1.0, // Right face
+                          1.0,  0.0, -1.0, // Right face
                           1.0,  1.0, -1.0,
                           1.0,  1.0,  1.0,
-                          1.0, -1.0,  1.0,
+                          1.0,  0.0,  1.0,
                      
-                         -1.0, -1.0, -1.0, // Left face
-                         -1.0, -1.0,  1.0,
+                         -1.0,  0.0, -1.0, // Left face
+                         -1.0,  0.0,  1.0,
                          -1.0,  1.0,  1.0,
                          -1.0,  1.0, -1.0 ];
                      
@@ -493,20 +493,18 @@
         mvPushMatrix();
         
         // Apply player transformations
-        mat4.translate(mvMatrix, [0.0, 0.2, 0.0]);
+        mat4.translate(mvMatrix, [0.0, -0.3, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation[1]), [1.0, 0.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation[0]), [0.0, 1.0, 0.0]);
         mat4.rotate(mvMatrix, degToRad(playerRotation[2]), [0.0, 0.0, 1.0]);
         
         mat4.translate(mvMatrix, [playerGlobalPosition[0], playerGlobalPosition[1], playerGlobalPosition[2]]);
-        
-		mvPushMatrix();
-        mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
 
         cube.draw(shaderProgram);
-		mvPopMatrix();
-		mvPushMatrix();
-        mat4.translate(mvMatrix, [0, -0.2, -0.3]);
+		
+        // Draw Pool Ball
+        mvPushMatrix();
+        mat4.translate(mvMatrix, [0, 0.3, -0.3]);
 		mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
 		
         gl.useProgram(lightShaderProgram);
@@ -531,7 +529,7 @@
         
         checkMouse();
                 
-        checkKeys();        
+        checkKeys();
     }
     
     function handleKeyDown(evt) {
