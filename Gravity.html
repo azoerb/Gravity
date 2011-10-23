@@ -152,10 +152,11 @@
     var fps;
         
     var keyDown = new Array();
-    var mousePos = new Vector(0.0, 0.0, 0.0);
+    var mousePos = vec3.create();
     
-    var playerPos = new Vector(0.0, 0.0, 0.0);
-    var playerRotation = new Vector(0.0, 0.0, 0.0);
+    var playerLocalOffset = vec3.create();
+    var playerGlobalPosition = vec3.create();
+    var playerRotation = vec3.create();
     
     var cube;
     var crosshair;
@@ -181,7 +182,6 @@
                     drawScene();
                     }, 1000 / INTERVAL);
     }
-	
     
     function webGLStart(canvas) {
         initGL(canvas);
@@ -430,51 +430,54 @@
     }
            
     function checkKeys() {
-        if (keyDown[39]) { // Right
-            playerPos.x += MOVEMENT_SPEED;
+        if (keyDown[39] || keyDown[68]) { // Right
+            playerLocalOffset[0] += MOVEMENT_SPEED;
         }
         
-        if (keyDown[37]) { // Left
-            playerPos.x -= MOVEMENT_SPEED;
+        if (keyDown[37] || keyDown[65]) { // Left
+            playerLocalOffset[0] -= MOVEMENT_SPEED;
         }
         
-        if (keyDown[38]) { // Up
-            playerPos.z += MOVEMENT_SPEED;
+        if (keyDown[38] || keyDown[87]) { // Up
+            playerLocalOffset[2] += MOVEMENT_SPEED;
         }
         
-        if (keyDown[40]) { // Down
-            playerPos.z -= MOVEMENT_SPEED;
+        if (keyDown[40] || keyDown[83]) { // Down
+            playerLocalOffset[2] -= MOVEMENT_SPEED;
         }
-        debug("" + playerPos.x);
+        
+        playerGlobalPosition[0] -= playerLocalOffset[2] * Math.sin(degToRad(playerRotation[0]));
+        playerGlobalPosition[2] += playerLocalOffset[2] * Math.cos(degToRad(playerRotation[0]));
+        
+        playerGlobalPosition[0] -= playerLocalOffset[0] * Math.sin(degToRad(90.0 + playerRotation[0]));
+        playerGlobalPosition[2] += playerLocalOffset[0] * Math.cos(degToRad(90.0 + playerRotation[0]));
+        
+        playerLocalOffset[0] = 0.0;
+        playerLocalOffset[1] = 0.0;
+        playerLocalOffset[2] = 0.0;
     }
     
     function checkMouse() {
-        // We have to save the sign of the mouse position since we can't raise a negative number
-        // to a partial exponent.  We re-multiply the result by the sign afterwards.
-        var xSign;
-        if (mousePos.x >= 0) {
-            xSign = 1;
+        if (mousePos[0] >= 0) {
+            playerRotation[0] += Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            playerRotation[0] %= 360;
         } else {
-            xSign = -1;
+            playerRotation[0] -= Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            if (playerRotation[0] < 0) {
+                playerRotation[0] = 360;
+            }
         }
-        
-        playerRotation.x += xSign * Math.pow(Math.abs(mousePos.x) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-        playerRotation.x %= 360;
-      
           
-        var ySign;
-        if (mousePos.y >= 0) {
-            ySign = 1;
+        if (mousePos[1] >= 0) {
+            playerRotation[1] += Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            if (playerRotation[1] >= 90) {
+                playerRotation[1] = 90;
+            }
         } else {
-            ySign = -1;
-        }
-        
-        playerRotation.y += ySign * Math.pow(Math.abs(mousePos.y) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-        
-        if (playerRotation.y >= 90) {
-            playerRotation.y = 90;
-        } else if (playerRotation.y <= -90) {
-            playerRotation.y = -90;
+            playerRotation[1] -= Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            if (playerRotation[1] <= -90) {
+                playerRotation[1] = -90;
+            }
         }
     }
     
@@ -491,11 +494,11 @@
         
         // Apply player transformations
         mat4.translate(mvMatrix, [0.0, 0.2, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation[1]), [1.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation[0]), [0.0, 1.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation[2]), [0.0, 0.0, 1.0]);
         
-        mat4.translate(mvMatrix, [playerPos.x, playerPos.y, playerPos.z]);
+        mat4.translate(mvMatrix, [playerGlobalPosition[0], playerGlobalPosition[1], playerGlobalPosition[2]]);
         
 		mvPushMatrix();
         mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
@@ -503,10 +506,10 @@
         cube.draw(shaderProgram);
 		mvPopMatrix();
 		mvPushMatrix();
-		 mat4.translate(mvMatrix, [0, -0.2, -0.3]);
+        mat4.translate(mvMatrix, [0, -0.2, -0.3]);
 		mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
 		
-		 gl.useProgram(lightShaderProgram);
+        gl.useProgram(lightShaderProgram);
 		test.draw(lightShaderProgram);
 		mvPopMatrix();
         mvPopMatrix();
@@ -528,7 +531,7 @@
         
         checkMouse();
                 
-        checkKeys();
+        checkKeys();        
     }
     
     function handleKeyDown(evt) {
@@ -541,11 +544,11 @@
         
     function handleMouseMove(evt) {
     if (navigator.userAgent.indexOf("Firefox")!=-1) {
-        mousePos.x = evt.clientX - canvas.offsetLeft - canvas.width / 2;
-        mousePos.y = evt.clientY - canvas.offsetTop - canvas.height / 2;
+        mousePos[0] = evt.clientX - canvas.offsetLeft - canvas.width / 2;
+        mousePos[1] = evt.clientY - canvas.offsetTop - canvas.height / 2;
     } else {
-        mousePos.x = evt.x - canvas.offsetLeft - canvas.width / 2;
-        mousePos.y = evt.y - canvas.offsetTop - canvas.height / 2;
+        mousePos[0] = evt.x - canvas.offsetLeft - canvas.width / 2;
+        mousePos[1] = evt.y - canvas.offsetTop - canvas.height / 2;
     }
 	}
     
