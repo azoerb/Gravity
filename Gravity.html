@@ -47,6 +47,8 @@
     }
 </script>
 
+
+
 <script id="texture-shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -59,6 +61,61 @@
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
         vTextureCoord = aTextureCoord;
+	}
+	</script>
+	
+<script id="light-shader-fs" type="x-shader/x-fragment">
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+
+    varying vec2 vTextureCoord;
+    varying vec3 vTransformedNormal;
+	varying vec4 vPosition;
+	
+	uniform mat4 uMVMatrix;
+	
+	uniform vec3 uAmbientColor;
+
+    uniform vec3 uPointLightingLocation;
+    uniform vec3 uPointLightingColor;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        vec3 lightWeighting;
+		
+
+		vec3 transformedDir = vec3(uMVMatrix * vec4(uPointLightingLocation, 0.0));
+		vec3 lightDirection = normalize(transformedDir - vPosition.xyz);
+		float directionalLightWeighting = max(dot(vTransformedNormal, transformedDir), 0.0);
+		lightWeighting = uAmbientColor + uPointLightingColor * directionalLightWeighting;
+		vec4 fragmentColor;
+		
+		fragmentColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+		gl_FragColor = vec4(fragmentColor.rgb * lightWeighting, fragmentColor.a);
+    }
+
+</script>
+	
+	<script id="light-shader-vs" type="x-shader/x-vertex">
+   attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+
+	varying vec2 vTextureCoord;
+	varying vec3 vTransformedNormal;
+	varying vec4 vPosition;
+
+    void main(void) {
+		vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+		gl_Position = uPMatrix * vPosition;
+		vTextureCoord = aTextureCoord;
+		vTransformedNormal = uNMatrix * aVertexNormal;
     }
 </script>
 
@@ -66,6 +123,8 @@
 <script type="text/javascript" src="jquery-1.6.4.js"></script>
 
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+<script type="text/javascript" src="Vector.js"></script>
 
 <script type="text/javascript" src="DrawableObject.js"></script>
 
@@ -75,7 +134,7 @@
 
 <script type="text/javascript">
     
-    var MOUSE_SENSITIVITY = 1.3; // Higher = more sensitive
+    var MOUSE_SENSITIVITY = 0.5; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.3; // Higher = quicker ramp up
     var MOVEMENT_SPEED = 0.1;
     
@@ -97,15 +156,19 @@
     var fps;
         
     var keyDown = new Array();
-    var mousePos = vec3.create();
+    var mousePos = new Vector(0.0, 0.0, 0.0);
     
-    var playerLocalOffset = vec3.create();
-    var playerGlobalPos = vec3.create();
-    var playerRotation = vec3.create();
+    var playerPos = new Vector(0.0, 0.0, 0.0);
+    var playerRotation = new Vector(0.0, 0.0, 0.0);
     
     var cube;
     var crosshair;
 	var test;
+	
+	var ambientLight = [0.0, 0.0, 0.0];
+	var lightDir = [1.0, 0.0, 0.0];
+	var lightColor = [0.7, 0.7, 0.7];
+	
   
     function init() {
         canvas = document.getElementById("Canvas");
@@ -122,6 +185,7 @@
                     drawScene();
                     }, 1000 / INTERVAL);
     }
+	
     
     function webGLStart(canvas) {
         initGL(canvas);
@@ -156,14 +220,15 @@
     
     function createObjects() {
         cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], false, false, null);
-        crosshair = new HUDObject("Crosshair.png");
-		test = new GameObject("test", [0.0, 0.0, 0.5], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "./textures/ball8.png");
+        crosshair = new HUDObject("textures/Crosshair.png");
+		test = new GameObject("test", [0.0, 0.0, 0.5], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "./textures/ball11.png");
 		test.loadModel("models/ball.obj");
     }
 
     function getShader(gl, id) {
         var shaderScript = document.getElementById(id);
         if (!shaderScript) {
+			console.log("Shader not found");
             return null;
         }
 
@@ -241,10 +306,42 @@
         textureShaderProgram.pMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uPMatrix");
         textureShaderProgram.mvMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uMVMatrix");
         textureShaderProgram.samplerUniform = gl.getUniformLocation(textureShaderProgram, "uSampler");
+		
+		 // Light Shaders
+        var lightFragmentShader = getShader(gl, "light-shader-fs");
+        var lightVertexShader = getShader(gl, "light-shader-vs");
+        
+        lightShaderProgram = gl.createProgram();
+        gl.attachShader(lightShaderProgram, lightVertexShader);
+        gl.attachShader(lightShaderProgram, lightFragmentShader);
+        gl.linkProgram(lightShaderProgram);
+        
+        if (!gl.getProgramParameter(lightShaderProgram, gl.LINK_STATUS)) {
+            console.log("Could not initialise shaders");
+        }
+        
+        
+		lightShaderProgram.vertexPositionAttribute = gl.getAttribLocation(lightShaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(lightShaderProgram.vertexPositionAttribute);
+
+        lightShaderProgram.vertexNormalAttribute = gl.getAttribLocation(lightShaderProgram, "aVertexNormal");
+        gl.enableVertexAttribArray(lightShaderProgram.vertexNormalAttribute);
+
+        lightShaderProgram.textureCoordAttribute = gl.getAttribLocation(lightShaderProgram, "aTextureCoord");
+        gl.enableVertexAttribArray(lightShaderProgram.textureCoordAttribute);
+		
+        lightShaderProgram.pMatrixUniform = gl.getUniformLocation(lightShaderProgram, "uPMatrix");
+        lightShaderProgram.mvMatrixUniform = gl.getUniformLocation(lightShaderProgram, "uMVMatrix");
+		lightShaderProgram.nMatrixUniform = gl.getUniformLocation(lightShaderProgram, "uNMatrix");
+        lightShaderProgram.samplerUniform = gl.getUniformLocation(lightShaderProgram, "uSampler");
+		lightShaderProgram.ambientColorUniform = gl.getUniformLocation(lightShaderProgram, "uAmbientColor");
+        lightShaderProgram.pointLightingLocationUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingLocation");
+        lightShaderProgram.pointLightingColorUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingColor");
+		
+		
     }
 
     function initBuffers() {
-		test.initObject();
     // Crosshair Buffers
         crosshair.vertices = [-1.0, -1.0,  0.0,
                               1.0, -1.0,  0.0,
@@ -325,6 +422,11 @@
     function setMatrixUniforms(program) {
         gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
         gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
+		
+		var normalMatrix = mat3.create();
+        mat4.toInverseMat3(mvMatrix, normalMatrix);
+        mat3.transpose(normalMatrix);
+        gl.uniformMatrix3fv(program.nMatrixUniform, false, normalMatrix);
     }
 
     function degToRad(degrees) {
@@ -332,50 +434,51 @@
     }
            
     function checkKeys() {
-        if (keyDown[68]) { // Right
-            playerLocalOffset[0] += MOVEMENT_SPEED;
+        if (keyDown[39]) { // Right
+            playerPos.x += MOVEMENT_SPEED;
         }
         
-        if (keyDown[65]) { // Left
-            playerLocalOffset[0] -= MOVEMENT_SPEED;
+        if (keyDown[37]) { // Left
+            playerPos.x -= MOVEMENT_SPEED;
         }
         
-        if (keyDown[87]) { // Up
-            playerLocalOffset[2] += MOVEMENT_SPEED;
+        if (keyDown[38]) { // Up
+            playerPos.z += MOVEMENT_SPEED;
         }
         
-        if (keyDown[83]) { // Down
-            playerLocalOffset[2] -= MOVEMENT_SPEED;
+        if (keyDown[40]) { // Down
+            playerPos.z -= MOVEMENT_SPEED;
         }
+        debug("" + playerPos.x);
     }
     
     function checkMouse() {
         // We have to save the sign of the mouse position since we can't raise a negative number
         // to a partial exponent.  We re-multiply the result by the sign afterwards.
         var xSign;
-        if (mousePos[0] >= 0) {
+        if (mousePos.x >= 0) {
             xSign = 1;
         } else {
             xSign = -1;
         }
         
-        playerRotation[0] += xSign * Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-        playerRotation[0] %= 360;
+        playerRotation.x += xSign * Math.pow(Math.abs(mousePos.x) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        playerRotation.x %= 360;
       
           
         var ySign;
-        if (mousePos[1] >= 0) {
+        if (mousePos.y >= 0) {
             ySign = 1;
         } else {
             ySign = -1;
         }
         
-        playerRotation[1] += ySign * Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        playerRotation.y += ySign * Math.pow(Math.abs(mousePos.y) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
         
-        if (playerRotation[1] >= 90) {
-            playerRotation[1] = 90;
-        } else if (playerRotation[1] <= -90) {
-            playerRotation[1] = -90;
+        if (playerRotation.y >= 90) {
+            playerRotation.y = 90;
+        } else if (playerRotation.y <= -90) {
+            playerRotation.y = -90;
         }
     }
     
@@ -392,25 +495,24 @@
         
         // Apply player transformations
         mat4.translate(mvMatrix, [0.0, 0.2, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation[1]), [1.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation[0]), [0.0, 1.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation[2]), [0.0, 0.0, 1.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.y), [1.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.x), [0.0, 1.0, 0.0]);
+        mat4.rotate(mvMatrix, degToRad(playerRotation.z), [0.0, 0.0, 1.0]);
         
-        mat4.translate(mvMatrix, [playerGlobalPos[0], playerGlobalPos[1], playerGlobalPos[2]]);
+        mat4.translate(mvMatrix, [playerPos.x, playerPos.y, playerPos.z]);
         
 		mvPushMatrix();
         mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
 
         cube.draw(shaderProgram);
 		mvPopMatrix();
-        
 		mvPushMatrix();
-        mat4.translate(mvMatrix, [0, -0.2, -0.3]);
+		 mat4.translate(mvMatrix, [0, -0.2, -0.3]);
 		mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
 		
-        gl.useProgram(textureShaderProgram);
-		test.draw(textureShaderProgram);
-        mvPopMatrix();
+		 gl.useProgram(lightShaderProgram);
+		test.draw(lightShaderProgram);
+		mvPopMatrix();
         mvPopMatrix();
         
         // Draw Crosshair
@@ -431,23 +533,6 @@
         checkMouse();
                 
         checkKeys();
-        
-        // Apply the local player offset to the global player coords
-        playerGlobalPos[0] += (playerLocalOffset[0] * mvMatrix[0] +
-                              playerLocalOffset[1] * mvMatrix[4] +
-                              playerLocalOffset[2] * mvMatrix[8]);
-                              
-        playerGlobalPos[1] += (playerLocalOffset[0] * mvMatrix[1] +
-                              playerLocalOffset[1] * mvMatrix[5] +
-                              playerLocalOffset[2] * mvMatrix[9]);
-                              
-        playerGlobalPos[2] += (playerLocalOffset[0] * mvMatrix[2] +
-                              playerLocalOffset[1] * mvMatrix[6] +
-                              playerLocalOffset[2] * mvMatrix[10]);
-        
-        playerLocalOffset[0] = 0.0;
-        playerLocalOffset[1] = 0.0;
-        playerLocalOffset[2] = 0.0;
     }
     
     function handleKeyDown(evt) {
@@ -459,14 +544,14 @@
     }
         
     function handleMouseMove(evt) {
-        if (navigator.userAgent.indexOf("Firefox")!=-1) {
-            mousePos[0] = evt.clientX - canvas.offsetLeft - canvas.width / 2;
-            mousePos[1] = evt.clientY - canvas.offsetTop - canvas.height / 2;
-        } else {
-            mousePos[0] = evt.x - canvas.offsetLeft - canvas.width / 2;
-            mousePos[1] = evt.y - canvas.offsetTop - canvas.height / 2;
-        }
+    if (navigator.userAgent.indexOf("Firefox")!=-1) {
+        mousePos.x = evt.clientX - canvas.offsetLeft - canvas.width / 2;
+        mousePos.y = evt.clientY - canvas.offsetTop - canvas.height / 2;
+    } else {
+        mousePos.x = evt.x - canvas.offsetLeft - canvas.width / 2;
+        mousePos.y = evt.y - canvas.offsetTop - canvas.height / 2;
     }
+	}
     
     function handleMouseClick(evt) {
     
