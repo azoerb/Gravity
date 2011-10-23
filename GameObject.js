@@ -93,8 +93,7 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
 			}
 		
 		}
-		console.log(that.vertices.length);
-		console.log(that.indices.length);
+		
 	}
     
     this.initObject = function() {
@@ -186,4 +185,7 @@ function GameObject(name, localPosition, mass, gravityVector, rotationVector, is
             gl.disable(gl.BLEND);
         }
     }
-}
+    
+
+    	}
+ 

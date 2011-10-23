@@ -155,10 +155,11 @@
     }
     
     function createObjects() {
-        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], false, false, null);
+        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "./textures/checker1-pCube1.1.jpg");
+        cube.loadModel("models/Level1alt.obj");
         crosshair = new HUDObject("Crosshair.png");
-		test = new GameObject("test", [0.0, 0.0, 0.5], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "./textures/ball8.png");
-		test.loadModel("models/ball.obj");
+		test = new GameObject("test", [0.0, 0.0, 0.5], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "./textures/ramp1-pCube1.jpg");
+		test.loadModel("models/cube.obj");
     }
 
     function getShader(gl, id) {
@@ -260,7 +261,7 @@
         
         crosshair.initObject();
         
-    // Cube Buffers
+    /* Cube Buffers
         cube.vertices = [-1.0, -1.0,  1.0, // Front face
                           1.0, -1.0,  1.0,
                           1.0,  1.0,  1.0,
@@ -304,7 +305,7 @@
                         12, 13, 14,   12, 14, 15, // Bottom face
                         16, 17, 18,   16, 18, 19, // Right face
                         20, 21, 22,   20, 22, 23];  // Left face
-        
+        */
         cube.initObject();
 		test.initObject();
     }
@@ -399,17 +400,24 @@
         mat4.translate(mvMatrix, [playerGlobalPos[0], playerGlobalPos[1], playerGlobalPos[2]]);
         
 		mvPushMatrix();
-        mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
-
-        cube.draw(shaderProgram);
+       // mat4.scale(mvMatrix, [1.0, 0.3, 1.0]);
+		gl.useProgram(textureShaderProgram);
+        cube.draw(textureShaderProgram);
 		mvPopMatrix();
         
 		mvPushMatrix();
-        mat4.translate(mvMatrix, [0, -0.2, -0.3]);
-		mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
+        mat4.translate(mvMatrix, [0, -0.2, -1]);
+		mat4.translate(mvMatrix, [0, -dist, 0]);
+		//console.log(cube.vertices);
+		//mat4.scale(mvMatrix, [0.1, 0.1, 0.1]);
 		
-        gl.useProgram(textureShaderProgram);
+		
+        //gl.useProgram(textureShaderProgram);
+        
 		test.draw(textureShaderProgram);
+	
+		//if(test.checkCollision())
+			//console.log("YESSSS!");
         mvPopMatrix();
         mvPopMatrix();
         
@@ -420,14 +428,24 @@
         
         crosshair.draw(textureShaderProgram);
         mvPopMatrix();
+
     }
 
+	//console.log("cube"+cube.vertices);
+	//console.log("ballpos"+dist+", -0.2,-0.3");
     function update() {
     	oldTime = currentTime;
         currentTime = new Date();
         timeDelta = currentTime - oldTime;
         fps = 1000 / timeDelta;
-        
+        var print=true;
+        if(print){
+       	
+        print=false;
+        }
+        if(!checkCollision(test,cube,0,-0.2-dist,-0.3)){
+        	objAnimate();
+        	}
         checkMouse();
                 
         checkKeys();
@@ -448,8 +466,31 @@
         playerLocalOffset[0] = 0.0;
         playerLocalOffset[1] = 0.0;
         playerLocalOffset[2] = 0.0;
+        
     }
-    
+    var dist=0;
+    var prevTime=0;
+    function objAnimate(){
+    	
+    	var currTime = new Date().getTime();
+    	if(prevTime != 0) {
+    		var elapsed = (currTime - prevTime);
+    		dist+= 9.8*(elapsed)/5000.0;
+    		}
+    		prevTime=currTime;
+    }
+        function checkCollision(obj1,obj2,x,y,z){
+    	//console.log(x,z);
+    	//check each vertex to see if it's hitting anything else
+    	for(i=0;i<obj1.vertices.length;i+=3){
+    		for(j=0;j<obj2.vertices.length;j+=3){
+    			if((Math.abs(obj1.vertices[i+1]+y-obj2.vertices[j+1])<0.02)){
+    				//console.log("YES!!");
+    				return true;
+    			}
+    		}
+    	}
+    	}
     function handleKeyDown(evt) {
         keyDown[evt.keyCode] = true;
     }
