@@ -1,9 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-<title>Test</title>
-
-<!-- Test -->
+<title>Gravity</title>
 
 <script id="shader-fs" type="x-shader/x-fragment">
     #ifdef GL_ES
@@ -46,8 +44,6 @@
         gl_FragColor = vec4 (color.r * color.a, color.g * color.a, color.b * color.a, color.a);
     }
 </script>
-
-
 
 <script id="texture-shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
@@ -97,9 +93,9 @@
     }
 
 </script>
-	
-	<script id="light-shader-vs" type="x-shader/x-vertex">
-   attribute vec3 aVertexPosition;
+
+<script id="light-shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
     attribute vec3 aVertexNormal;
     attribute vec2 aTextureCoord;
 
@@ -126,11 +122,11 @@
 
 <script type="text/javascript" src="Vector.js"></script>
 
-<script type="text/javascript" src="DrawableObject.js"></script>
+<script type="text/javascript" src="objects/DrawableObject.js"></script>
 
-<script type="text/javascript" src="HUDObject.js"></script>
+<script type="text/javascript" src="objects/HUDObject.js"></script>
 
-<script type="text/javascript" src="GameObject.js"></script>
+<script type="text/javascript" src="objects/GameObject.js"></script>
 
 <script type="text/javascript">
     
