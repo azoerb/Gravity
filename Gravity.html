@@ -1,1115 +1,552 @@
 
 <!DOCTYPE HTML>
-
 <html>
-
 <head>
-
 <title>Gravity</title>
 
-
-
 <script id="shader-fs" type="x-shader/x-fragment">
-
     #ifdef GL_ES
-
         precision highp float;
-
     #endif
-
-
 
     varying vec4 vColor;
 
-
-
     void main(void) {
-
         gl_FragColor = vColor;
-
     }
-
 </script>
-
-
 
 <script id="shader-vs" type="x-shader/x-vertex">
-
     attribute vec3 aVertexPosition;
-
     attribute vec4 aVertexColor;
 
-
-
     uniform mat4 uMVMatrix;
-
     uniform mat4 uPMatrix;
-
-
 
     varying vec4 vColor;
 
-
-
     void main(void) {
-
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-
         vColor = aVertexColor;
-
     }
-
 </script>
-
-
 
 <script id="texture-shader-fs" type="x-shader/x-fragment">
-
     #ifdef GL_ES
-
         precision highp float;
-
     #endif
-
-
 
     varying vec2 vTextureCoord;
 
-
-
     uniform sampler2D uSampler;
 
-
-
     void main(void) {
-
         vec4 color = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-
         gl_FragColor = vec4 (color.r * color.a, color.g * color.a, color.b * color.a, color.a);
-
     }
-
 </script>
-
-
 
 <script id="texture-shader-vs" type="x-shader/x-vertex">
-
     attribute vec3 aVertexPosition;
-
     attribute vec2 aTextureCoord;
 
-
-
     uniform mat4 uMVMatrix;
-
     uniform mat4 uPMatrix;
 
-
-
     varying vec2 vTextureCoord;
-
-
 
     void main(void) {
-
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-
         vTextureCoord = aTextureCoord;
-
 	}
-
 	</script>
-
 	
-
 <script id="light-shader-fs" type="x-shader/x-fragment">
-
     #ifdef GL_ES
-
     precision highp float;
-
     #endif
 
-
-
     varying vec2 vTextureCoord;
-
     varying vec3 vTransformedNormal;
-
 	varying vec4 vPosition;
-
 	
-
-	uniform mat4 uMVMatrix;
-
-	
-
+	uniform mat4 uMVMatrix;	
 	uniform vec3 uAmbientColor;
-
-
-
     uniform vec3 uPointLightingLocation;
-
     uniform vec3 uPointLightingColor;
-
-
 
     uniform sampler2D uSampler;
 
-
-
     void main(void) {
-
         vec3 lightWeighting;
-
-		
-
-
-
 		vec3 transformedDir = vec3(uMVMatrix * vec4(uPointLightingLocation, 0.0));
-
 		vec3 lightDirection = normalize(transformedDir - vPosition.xyz);
-
 		float directionalLightWeighting = max(dot(vTransformedNormal, transformedDir), 0.0);
-
 		lightWeighting = uAmbientColor + uPointLightingColor * directionalLightWeighting;
-
 		vec4 fragmentColor;
-
 		
-
 		fragmentColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-
 		gl_FragColor = vec4(fragmentColor.rgb * lightWeighting, fragmentColor.a);
-
     }
 
-
-
 </script>
-
-
 
 <script id="light-shader-vs" type="x-shader/x-vertex">
-
     attribute vec3 aVertexPosition;
-
     attribute vec3 aVertexNormal;
-
     attribute vec2 aTextureCoord;
 
-
-
     uniform mat4 uMVMatrix;
-
     uniform mat4 uPMatrix;
-
     uniform mat3 uNMatrix;
 
-
-
 	varying vec2 vTextureCoord;
-
 	varying vec3 vTransformedNormal;
-
 	varying vec4 vPosition;
 
-
-
     void main(void) {
-
 		vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
-
 		gl_Position = uPMatrix * vPosition;
-
 		vTextureCoord = aTextureCoord;
-
 		vTransformedNormal = uNMatrix * aVertexNormal;
-
     }
-
 </script>
-
-
-
-
 
 <script type="text/javascript" src="jquery-1.6.4.js"></script>
 
-
-
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 
-
-
-<script type="text/javascript" src="Vector.js"></script>
-
-
+<script type="text/javascript" src="Vector.js"></script
 
 <script type="text/javascript" src="objects/DrawableObject.js"></script>
 
-
-
 <script type="text/javascript" src="objects/HUDObject.js"></script>
-
-
 
 <script type="text/javascript" src="objects/GameObject.js"></script>
 
-
-
 <script type="text/javascript">
-
     
-
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
-
     var MOUSE_EXPONENT = 1.3; // Higher = quicker ramp up
-
     var MOVEMENT_SPEED = 0.07;
-
     
-
     var canvas;
-
     
-
 //OPEN GL VARS
-
     var gl;
-
     var shaderProgram;
-
     var lightShaderProgram;
-
     var textureShaderProgram;
-
     
-
     var mvMatrix = mat4.create();
-
     var mvMatrixStack = [];
-
     var pMatrix = mat4.create();
-
         
-
     var INTERVAL = 60;
-
     var timeDelta;
-
     var currentTime;
-
     var oldTime;
-
     var fps;
-
         
-
     var keyDown = new Array();
-
     var mousePos = vec3.create();
-
     
-
     var playerLocalOffset = vec3.create();
-
     var playerGlobalPosition = vec3.create();
-
     var playerRotation = vec3.create();
 
-    
-
     var cube;
-
     var crosshair;
-
 	var test;
-
 	
-
     var ambientLight = [0.7, 0.7, 0.7];
-
     var lightDir = [0.0, 0.0, 0.0];
-
     var lightColor = [0.7, 0.7, 0.7];
-
     
-
     var dist = 0;
-
     var prevTime = 0;
-
     var fall = false;
-
 	
-
   
-
     function init() {
-
         canvas = document.getElementById("Canvas");
-
     
-
         document.onkeyup = handleKeyUp;
-
         document.onkeydown = handleKeyDown;
-
         document.onclick = handleMouseClick;
-
         document.onmousemove = handleMouseMove;
-
                 
-
         webGLStart(canvas);
 
-
-
         setInterval(function() {
-
                     update();
-
                     drawScene();
-
                     }, 1000 / INTERVAL);
-
     }
-
     
-
     function webGLStart(canvas) {
-
         initGL(canvas);
-
         createObjects();
-
         initShaders();
-
         initBuffers();
-
         
-
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
-
         gl.enable(gl.DEPTH_TEST);
-
         gl.enable(gl.BLEND);
-
         gl.enable(gl.TEXTURE_2D);
-
         
-
         //// Disable CullFace for now so that cube renders on both sides
-
         gl.disable(gl.CULL_FACE);
-
         ////
-
         
-
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-
-
     }
-
-
 
     function initGL(canvas) {
-
         try {
-
             gl = canvas.getContext("experimental-webgl");
-
             gl.viewportWidth = canvas.width;
-
             gl.viewportHeight = canvas.height;
-
         } catch (e) {
-
             alert("Could not initialise WebGL");
-
         }
-
         if (!gl) {
-
             alert("Could not initialise WebGL");
-
         }
-
     }
-
     
-
     function createObjects() {
-
         cube = new GameObject("Cube", [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
-
         cube.loadModel("models/Level1.obj");
-        
-
         crosshair = new HUDObject("textures/Crosshair.png");
-
 		test = new GameObject("test", [0.0, 0.0, 0.0], [0.0, 0.2, -1], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
-
 		test.loadModel("models/cube.obj");
-
     }
-
-
 
     function getShader(gl, id) {
-
         var shaderScript = document.getElementById(id);
-
         if (!shaderScript) {
-
 			console.log("Shader not found");
-
             return null;
-
         }
-
-
 
         var str = "";
-
         var k = shaderScript.firstChild;
-
         while (k) {
-
             if (k.nodeType == 3) {
-
                 str += k.textContent;
-
             }
-
             k = k.nextSibling;
-
         }
-
-
 
         var shader;
-
         if (shaderScript.type == "x-shader/x-fragment") {
-
             shader = gl.createShader(gl.FRAGMENT_SHADER);
-
         } else if (shaderScript.type == "x-shader/x-vertex") {
-
             shader = gl.createShader(gl.VERTEX_SHADER);
-
         } else {
-
             return null;
-
         }
-
-
 
         gl.shaderSource(shader, str);
-
         gl.compileShader(shader);
 
-
-
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-
             alert(gl.getShaderInfoLog(shader));
-
             return null;
-
         }
-
-
 
         return shader;
-
     }
-
-
 
     function initShaders() {
-
         // Cube color shaders
-
         var fragmentShader = getShader(gl, "shader-fs");
-
         var vertexShader = getShader(gl, "shader-vs");
-
         
-
         shaderProgram = gl.createProgram();
-
         gl.attachShader(shaderProgram, vertexShader);
-
         gl.attachShader(shaderProgram, fragmentShader);
-
         gl.linkProgram(shaderProgram);
-
         
-
         if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-
             alert("Could not initialise shaders");
-
         }
-
                 
-
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-
         
-
         shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-
         gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
         
-
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-
         
-
         // Texture Shaders
-
         var textureFragmentShader = getShader(gl, "texture-shader-fs");
-
         var textureVertexShader = getShader(gl, "texture-shader-vs");
-
         
-
         textureShaderProgram = gl.createProgram();
-
         gl.attachShader(textureShaderProgram, textureVertexShader);
-
         gl.attachShader(textureShaderProgram, textureFragmentShader);
-
         gl.linkProgram(textureShaderProgram);
-
         
-
         if (!gl.getProgramParameter(textureShaderProgram, gl.LINK_STATUS)) {
-
             alert("Could not initialise shaders");
-
         }
-
         
-
         textureShaderProgram.vertexPositionAttribute = gl.getAttribLocation(textureShaderProgram, "aVertexPosition");
-
         gl.enableVertexAttribArray(textureShaderProgram.vertexPositionAttribute);
-
         
-
         textureShaderProgram.textureCoordAttribute = gl.getAttribLocation(textureShaderProgram, "aTextureCoord");
-
         gl.enableVertexAttribArray(textureShaderProgram.textureCoordAttribute);
-
         
-
         textureShaderProgram.pMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uPMatrix");
-
         textureShaderProgram.mvMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uMVMatrix");
-
         textureShaderProgram.samplerUniform = gl.getUniformLocation(textureShaderProgram, "uSampler");
-
 		
-
         // Light Shaders
-
         var lightFragmentShader = getShader(gl, "light-shader-fs");
-
         var lightVertexShader = getShader(gl, "light-shader-vs");
-
         
-
         lightShaderProgram = gl.createProgram();
-
         gl.attachShader(lightShaderProgram, lightVertexShader);
-
         gl.attachShader(lightShaderProgram, lightFragmentShader);
-
         gl.linkProgram(lightShaderProgram);
-
         
-
         if (!gl.getProgramParameter(lightShaderProgram, gl.LINK_STATUS)) {
-
             console.log("Could not initialise shaders");
-
         }
-
         
-
 		lightShaderProgram.vertexPositionAttribute = gl.getAttribLocation(lightShaderProgram, "aVertexPosition");
-
         gl.enableVertexAttribArray(lightShaderProgram.vertexPositionAttribute);
 
-
-
         lightShaderProgram.vertexNormalAttribute = gl.getAttribLocation(lightShaderProgram, "aVertexNormal");
-
         gl.enableVertexAttribArray(lightShaderProgram.vertexNormalAttribute);
 
-
-
         lightShaderProgram.textureCoordAttribute = gl.getAttribLocation(lightShaderProgram, "aTextureCoord");
-
         gl.enableVertexAttribArray(lightShaderProgram.textureCoordAttribute);
-
 		
-
         lightShaderProgram.pMatrixUniform = gl.getUniformLocation(lightShaderProgram, "uPMatrix");
-
         lightShaderProgram.mvMatrixUniform = gl.getUniformLocation(lightShaderProgram, "uMVMatrix");
-
 		lightShaderProgram.nMatrixUniform = gl.getUniformLocation(lightShaderProgram, "uNMatrix");
-
         lightShaderProgram.samplerUniform = gl.getUniformLocation(lightShaderProgram, "uSampler");
-
 		lightShaderProgram.ambientColorUniform = gl.getUniformLocation(lightShaderProgram, "uAmbientColor");
-
         lightShaderProgram.pointLightingLocationUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingLocation");
-
         lightShaderProgram.pointLightingColorUniform = gl.getUniformLocation(lightShaderProgram, "uPointLightingColor");
-
     }
-
-
 
     function initBuffers() {
-
     // Crosshair Buffers
-
         crosshair.vertices = [-1.0, -1.0,  0.0,
-
                               1.0, -1.0,  0.0,
-
                               1.0,  1.0,  0.0,
-
                              -1.0,  1.0,  0.0];
-
                              
-
         crosshair.textCoords = [0.0, 0.0,
-
                                 1.0, 0.0,
-
                                 1.0, 1.0,
-
                                 0.0, 1.0];
-
                                 
-
         crosshair.indices = [0, 1, 2, 0, 2, 3];
-
         
-
         crosshair.initObject();
-
         
-
         cube.initObject();
-
 		test.initObject();
-
     }
-
     
-
     function mvPushMatrix() {
-
         var copy = mat4.create();
-
         mat4.set(mvMatrix, copy);
-
         mvMatrixStack.push(copy);
-
     }
-
-
 
     function mvPopMatrix() {
-
         if (mvMatrixStack.length == 0) {
-
             throw "Invalid popMatrix!";
-
         }
-
         mvMatrix = mvMatrixStack.pop();
-
     }
-
-
 
     function setMatrixUniforms(program) {
-
         gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
-
         gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
-
 		
-
 		var normalMatrix = mat3.create();
-
         mat4.toInverseMat3(mvMatrix, normalMatrix);
-
         mat3.transpose(normalMatrix);
-
         gl.uniformMatrix3fv(program.nMatrixUniform, false, normalMatrix);
-
     }
-
-
 
     function degToRad(degrees) {
-
         return degrees * Math.PI / 180;
-
     }
-
            
-
     function checkKeys() {
-
         if (keyDown[39] || keyDown[68]) { // Right
-
             playerLocalOffset[0] += MOVEMENT_SPEED;
-
         }
-
         
-
         if (keyDown[37] || keyDown[65]) { // Left
-
             playerLocalOffset[0] -= MOVEMENT_SPEED;
-
         }
-
         
-
         if (keyDown[38] || keyDown[87]) { // Up
-
             playerLocalOffset[2] += MOVEMENT_SPEED;
-
         }
-
         
-
         if (keyDown[40] || keyDown[83]) { // Down
-
             playerLocalOffset[2] -= MOVEMENT_SPEED;
-
         }
-
         
-
         playerGlobalPosition[0] -= playerLocalOffset[2] * Math.sin(degToRad(playerRotation[0]));
-
         playerGlobalPosition[2] += playerLocalOffset[2] * Math.cos(degToRad(playerRotation[0]));
-
         
-
         playerGlobalPosition[0] -= playerLocalOffset[0] * Math.sin(degToRad(90.0 + playerRotation[0]));
-
         playerGlobalPosition[2] += playerLocalOffset[0] * Math.cos(degToRad(90.0 + playerRotation[0]));
-
         
-
         playerLocalOffset[0] = 0.0;
-
         playerLocalOffset[1] = 0.0;
-
         playerLocalOffset[2] = 0.0;
-
     }
-
     
-
     function checkMouse() {
-
         if (mousePos[0] >= 0) {
-
             playerRotation[0] += Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-
             playerRotation[0] %= 360;
-
         } else {
-
             playerRotation[0] -= Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-
             if (playerRotation[0] < 0) {
-
                 playerRotation[0] = 360;
-
             }
-
         }
-
           
-
         if (mousePos[1] >= 0) {
-
             playerRotation[1] += Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-
             if (playerRotation[1] >= 90) {
-
                 playerRotation[1] = 90;
-
             }
-
         } else {
-
             playerRotation[1] -= Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-
             if (playerRotation[1] <= -90) {
-
                 playerRotation[1] = -90;
-
             }
-
         }
-
     }
-
     
-
     function drawScene() {
-
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
         
-
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-
         mat4.identity(mvMatrix);
-
         
-
         // Draw Cube
-
         gl.useProgram(lightShaderProgram);
-
         mvPushMatrix();
-
         
-
         // Apply player transformations
-
         mat4.translate(mvMatrix, [0.0, -0.3, 0.0]);
-
         mat4.rotate(mvMatrix, degToRad(playerRotation[1]), [1.0, 0.0, 0.0]);
-
         mat4.rotate(mvMatrix, degToRad(playerRotation[0]), [0.0, 1.0, 0.0]);
-
         mat4.rotate(mvMatrix, degToRad(playerRotation[2]), [0.0, 0.0, 1.0]);
-
         
-
         mat4.translate(mvMatrix, [playerGlobalPosition[0], playerGlobalPosition[1], playerGlobalPosition[2]]);
 
-
-
         cube.draw(lightShaderProgram);
-
 		
-
         //
-
         mvPushMatrix();
-
-
 		mat4.translate(mvMatrix, [test.globalPosition[0], test.globalPosition[1], test.globalPosition[2]]);
-
 		
-
         test.draw(lightShaderProgram);
-
         
-
 		mvPopMatrix();
-
         mvPopMatrix();
-
         
-
         // Draw Crosshair
-
         mvPushMatrix();
-
         gl.useProgram(textureShaderProgram);
-
         mat4.translate(mvMatrix, [0.0, 0.0, -25.0]);
-
-        
-
+    
         crosshair.draw(textureShaderProgram);
-
         mvPopMatrix();
-
     }
 
-
-
     function update() {
-
     	oldTime = currentTime;
-
         currentTime = new Date();
-
         timeDelta = currentTime - oldTime;
-
         fps = 1000 / timeDelta;
-
         
 		//move object if it isn't colliding with anything else//add direction checking
         if(!checkCollision(test,cube)) {
-
         	objAnimate(test);
-
         }
-
         
-
         checkMouse();
-
                 
-
         checkKeys();
-
     }
-
     
-
     function objAnimate(obj) {
-
         if (fall) {
-
             var currTime = new Date().getTime();
-
             if(prevTime != 0) {
-
                 var elapsed = (currTime - prevTime);
-
                 obj.globalPosition[1] -= 9.8 * (elapsed) / 5000.0;
-
             }
-
             prevTime = currTime;
-
         }
-
     }
-
     
-
     function checkCollision(obj1,obj2) {
-
     	//console.log(x,z);
-
     	//check each vertex to see if it's hitting anything else
-
     	for(i=0;i<obj1.vertices.length;i+=3){
-
     		for(j=0;j<obj2.vertices.length;j+=3){
-
     			if((Math.abs(obj1.vertices[i+1]+obj1.globalPosition[1]-obj2.vertices[j+1])<0.02)){
-
     				//console.log("YES!!");
-
     				return true;
-
     			}
-
     		}
-
     	}
-
     }
-
     
-
     function handleKeyDown(evt) {
-
         keyDown[evt.keyCode] = true;
-
     }
-
  
-
     function handleKeyUp(evt) {
-
         keyDown[evt.keyCode] = false;
-
     }
-
         
-
     function handleMouseMove(evt) {
-
-    if (navigator.userAgent.indexOf("Firefox")!=-1) {
-
-        mousePos[0] = evt.clientX - canvas.offsetLeft - canvas.width / 2;
-
-        mousePos[1] = evt.clientY - canvas.offsetTop - canvas.height / 2;
-
-    } else {
-
-        mousePos[0] = evt.x - canvas.offsetLeft - canvas.width / 2;
-
-        mousePos[1] = evt.y - canvas.offsetTop - canvas.height / 2;
-
-    }
-
+        if (navigator.userAgent.indexOf("Firefox")!=-1) {
+            mousePos[0] = evt.clientX - canvas.offsetLeft - canvas.width / 2;
+            mousePos[1] = evt.clientY - canvas.offsetTop - canvas.height / 2;
+        } else {
+            mousePos[0] = evt.x - canvas.offsetLeft - canvas.width / 2;
+            mousePos[1] = evt.y - canvas.offsetTop - canvas.height / 2;
+        }
 	}
-
     
-
     function handleMouseClick(evt) {
-
         fall = true;
-
 	}
-
     
-
     function debug(text) {
-
         document.getElementById('debug').innerHTML = text;
-
     }
-
     
-
 </script>
-
 </head>
 
-
-
 <body onload="init()" style="text-align:center">
-
     <canvas id="Canvas" width="800" height="600" style="border:1px solid #eeeeee ">
-
         Your browser does not support the canvas element.
-
     </canvas>
-
     <div id="debug"></div>
-
 </body>
-
 </html>
-
