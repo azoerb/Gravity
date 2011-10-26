@@ -455,14 +455,12 @@
         
         var angle = invertY * player.rotationVector[localY];
         
-        debug("" + localX + " " + localZ);
-        
         player.globalPosition[localX] -= invertX * player.localOffset[2] * Math.sin(degToRad(angle));
         player.globalPosition[localZ] += invertZ * player.localOffset[2] * Math.cos(degToRad(angle));
-        /*
-        player.globalPosition[localX] -= player.localOffset[0] * Math.sin(degToRad(-90.0 + angle));
-        player.globalPosition[localZ] += player.localOffset[0] * Math.cos(degToRad(-90.0 + angle));
-        */
+        
+        player.globalPosition[localX] -= invertX * player.localOffset[0] * Math.sin(degToRad(-90.0 + angle));
+        player.globalPosition[localZ] += invertZ * player.localOffset[0] * Math.cos(degToRad(-90.0 + angle));
+        
         
         //debug("Angle " + angle + " Position " + player.globalPosition[0] + " " + player.globalPosition[1] + " " + player.globalPosition[2]);
         
@@ -599,8 +597,6 @@
         // Apply player transformations
         gravToGlobal(player);
         
-        mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
-        
         var og = [0, 0, 0];
         og[orientAxis] = 1;
         mat4.rotate(mvMatrix, degToRad(orientOffset), og);
@@ -612,6 +608,8 @@
         var hg = [0, 0, 0];
         hg[localY] = 1;
         mat4.rotate(mvMatrix, degToRad(player.rotationVector[localY]), hg);
+        
+        mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
         cube.draw(lightShaderProgram);
 		
