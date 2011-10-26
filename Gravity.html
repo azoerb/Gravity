@@ -164,7 +164,7 @@
     var verticalRotationAxis;
     
     var sidewaysMovementAxis;
-    var forwardsMovementAxis;
+    var forwardMovementAxis;
     var verticalMovementAxis;
     var movementOffset;
     
@@ -451,13 +451,22 @@
             changeGravity();
         }
         
+        if (keyDown[70]) { // F (Front)
+            player.gravityVector = [0, 0, -1];
+            changeGravity();
+        }
+        
+        if (keyDown[66]) { // B (Back)
+            player.gravityVector = [0, 0, 1];
+            changeGravity();
+        }
         getGravityInfo(player);
         
         player.globalPosition[sidewaysMovementAxis] -= player.localOffset[2] * Math.sin(degToRad(player.rotationVector[horizontalRotationAxis]));
-        player.globalPosition[forwardsMovementAxis] += player.localOffset[2] * Math.cos(degToRad(player.rotationVector[horizontalRotationAxis]));
+        player.globalPosition[forwardMovementAxis] += player.localOffset[2] * Math.cos(degToRad(player.rotationVector[horizontalRotationAxis]));
         
         player.globalPosition[sidewaysMovementAxis] -= player.localOffset[0] * invert * Math.sin(degToRad(-90.0 + player.rotationVector[horizontalRotationAxis]));
-        player.globalPosition[forwardsMovementAxis] += player.localOffset[0] * invert * Math.cos(degToRad(-90.0 + player.rotationVector[horizontalRotationAxis]));
+        player.globalPosition[forwardMovementAxis] += player.localOffset[0] * invert * Math.cos(degToRad(-90.0 + player.rotationVector[horizontalRotationAxis]));
         
         player.localOffset[0] = 0.0;
         player.localOffset[1] = 0.0;
@@ -467,7 +476,6 @@
     function changeGravity() {
         if (!test.gravLocked) {
             test.gravityVector = player.gravityVector;
-            //test.fall = true;
         }
     }
     
@@ -485,7 +493,7 @@
             horizontalRotationAxis = 0;
             verticalRotationAxis = 1;
             sidewaysMovementAxis = verticalRotationAxis;
-            forwardsMovementAxis = 2;
+            forwardMovementAxis = 2;
             verticalMovementAxis = horizontalRotationAxis;
             horizontalRotationSign = -1;
         } else if (object.gravityVector[1] != 0) {
@@ -500,20 +508,22 @@
             horizontalRotationAxis = 1;
             verticalRotationAxis = 0;
             sidewaysMovementAxis = verticalRotationAxis;
-            forwardsMovementAxis = 2;
+            forwardMovementAxis = 2;
             verticalMovementAxis = horizontalRotationAxis;
             horizontalRotationSign = 1;
         } else {
             rotationOffsetAxis = 0;
-            if (object.gravityVector[1] >= 0) {
+            if (object.gravityVector[2] >= 0) {
                 rotationOffsetAmount = 90.0;
+                invert = 1;
             } else {
                 rotationOffsetAmount = -90.0;
+                invert = -1;
             }
             horizontalRotationAxis = 2;
             verticalRotationAxis = 0;
             sidewaysMovementAxis = verticalRotationAxis;
-            forwardsMovementAxis = 1;
+            forwardMovementAxis = 1;
             verticalMovementAxis = horizontalRotationAxis;
             horizontalRotationSign = -1;
         }
@@ -688,7 +698,7 @@
     }
     
     function handleKeyDown(evt) {
-        keyDown[evt.keyCode] = true;
+        keyDown[evt.keyCode] = true;        
     }
  
     function handleKeyUp(evt) {
