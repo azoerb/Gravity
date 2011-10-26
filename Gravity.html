@@ -160,11 +160,15 @@
     
     var player;
     
-    var horizontalGravityAxis;
-    var verticalGravityAxis;
-    var offsetAxis;
-    var offsetAmount;
-    var directionSign; // Used to invert direction so that the rotation directions work
+    var horizontalRotationAxis;
+    var verticalRotationAxis;
+    var sidewaysMovementAxis;
+    var forwardsMovementAxis;
+    var movementOffset;
+    
+    var rotationOffsetAxis; // Used to 
+    var rotationOffsetAmount;
+    var horizontalRotationSign; // Used to normalize rotation directions between axes
     var rotationOffset; // Used to make the rotation limits work
 
     var cube;
@@ -407,81 +411,79 @@
            
     function checkKeys() {
         if (keyDown[87]) { // W
-            player.globalPosition[2] += MOVEMENT_SPEED;
+            player.localOffset[2] += MOVEMENT_SPEED;
         }
         
         if (keyDown[83]) { // S
-            player.globalPosition[2] -= MOVEMENT_SPEED;
+            player.localOffset[2] -= MOVEMENT_SPEED;
         }
         
         if (keyDown[65]) { // A
-            player.globalPosition[0] += MOVEMENT_SPEED;
+            player.localOffset[0] += MOVEMENT_SPEED;
         }
         
         if (keyDown[68]) { // D
-            player.globalPosition[0] -= MOVEMENT_SPEED;
+            player.localOffset[0] -= MOVEMENT_SPEED;
         }
         
         if (keyDown[37]) { // Left
             player.gravityVector = [-1, 0, 0];
-            changeGravity()
         }
         
         if (keyDown[38]) { // Up
             player.gravityVector = [0, 0, 1];
-            changeGravity()
         }
         
         if (keyDown[39]) { // Right
             player.gravityVector = [1, 0, 0];
-            changeGravity()
         }
         
         if (keyDown[40]) { // Down
             player.gravityVector = [0, -1, 0];
-            changeGravity()
         }
         
-        /*
-        player.globalPosition[0] -= player.localOffset[2] * Math.sin(degToRad(player.rotationVector[0]));
-        player.globalPosition[2] += player.localOffset[2] * Math.cos(degToRad(player.rotationVector[0]));
+        getGravityInfo(player);
         
-        player.globalPosition[0] -= player.localOffset[0] * Math.sin(degToRad(90.0 + player.rotationVector[0]));
-        player.globalPosition[2] += player.localOffset[0] * Math.cos(degToRad(90.0 + player.rotationVector[0]));
-        */
-    
+        player.globalPosition[sidewaysMovementAxis] -= player.localOffset[2] * Math.sin(degToRad(player.rotationVector[horizontalRotationAxis]));
+        player.globalPosition[forwardsMovementAxis] += player.localOffset[2] * Math.cos(degToRad(player.rotationVector[horizontalRotationAxis]));
+        
+        player.globalPosition[sidewaysMovementAxis] -= player.localOffset[0] * Math.sin(degToRad(-90.0 + player.rotationVector[horizontalRotationAxis]));
+        player.globalPosition[forwardsMovementAxis] += player.localOffset[0] * Math.cos(degToRad(-90.0 + player.rotationVector[horizontalRotationAxis]));
+        
         player.localOffset[0] = 0.0;
         player.localOffset[1] = 0.0;
         player.localOffset[2] = 0.0;
     }
     
     function changeGravity() {
-        //player.rotationVector = [0.0, 0.0, -1.0];        
     }
     
     function getGravityInfo(object) {
         // Figure out axis and sign for gravity vector
         if (object.gravityVector[0] != 0) {
-            offsetAxis = 2;
-            offsetAmount = -90.0;
-            horizontalGravityAxis = 0;
-            verticalGravityAxis = 1;
-            directionSign = -1;
-            rotationOffset = 0.0;
+            rotationOffsetAxis = 2;
+            rotationOffsetAmount = -90.0;
+            horizontalRotationAxis = 0;
+            verticalRotationAxis = 1;
+            sidewaysMovementAxis = 1;
+            forwardsMovementAxis = 2;
+            horizontalRotationSign = -1;
         } else if (object.gravityVector[1] != 0) {
-            offsetAxis = 1;
-            offsetAmount = 0.0;
-            horizontalGravityAxis = 1;
-            verticalGravityAxis = 0;
-            directionSign = 1;
-            rotationOffset = 0.0;
+            rotationOffsetAxis = 1;
+            rotationOffsetAmount = 0.0;
+            horizontalRotationAxis = 1;
+            verticalRotationAxis = 0;
+            sidewaysMovementAxis = 0;
+            forwardsMovementAxis = 2;
+            horizontalRotationSign = 1;
         } else {
-            offsetAxis = 0;
-            offsetAmount = 0.0;
-            horizontalGravityAxis = 2;
-            verticalGravityAxis = 0;
-            directionSign = -1;
-            rotationOffset = 90;
+            rotationOffsetAxis = 0;
+            rotationOffsetAmount = 90.0;
+            horizontalRotationAxis = 2;
+            verticalRotationAxis = 0;
+            sidewaysMovementAxis = 0;
+            forwardsMovementAxis = 1;
+            horizontalRotationSign = -1;
         }
     }
     
@@ -490,29 +492,30 @@
         
         // Mouse x-axis
         if (mousePos[0] >= 0) {
-            player.rotationVector[horizontalGravityAxis] += directionSign * Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            player.rotationVector[horizontalRotationAxis] += Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
         } else {
-            player.rotationVector[horizontalGravityAxis] -= directionSign * Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            player.rotationVector[horizontalRotationAxis] -= Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        }
+                
+        if (player.rotationVector[horizontalRotationAxis] < 0) {
+            player.rotationVector[horizontalRotationAxis] = 360;
+        } else {
+            player.rotationVector[horizontalRotationAxis] %= 360;
         }
         
-        if (player.rotationVector[horizontalGravityAxis] < 0) {
-            player.rotationVector[horizontalGravityAxis] = 360;
-        } else {
-            player.rotationVector[horizontalGravityAxis] %= 360;
-        }
+        debug("" + player.rotationVector[horizontalRotationAxis]);
 
         // Mouse y-axis
-        var maxOffset = 0;
         if (mousePos[1] >= 0) {
-            player.rotationVector[verticalGravityAxis] += Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            player.rotationVector[verticalRotationAxis] += Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
         } else {
-            player.rotationVector[verticalGravityAxis] -= Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+            player.rotationVector[verticalRotationAxis] -= Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
         }
 
-        if (player.rotationVector[verticalGravityAxis] >= 90 + rotationOffset) {
-            player.rotationVector[verticalGravityAxis] = 90 + rotationOffset;
-        } else if (player.rotationVector[verticalGravityAxis] <= -90 + rotationOffset) {
-            player.rotationVector[verticalGravityAxis] = -90 + rotationOffset;
+        if (player.rotationVector[verticalRotationAxis] >= 90) {
+            player.rotationVector[verticalRotationAxis] = 90;
+        } else if (player.rotationVector[verticalRotationAxis] <= -90) {
+            player.rotationVector[verticalRotationAxis] = -90;
         }
     }
     
@@ -564,18 +567,18 @@
         getGravityInfo(player)
         
         var og = [0, 0, 0];
-        og[offsetAxis] = 1;
-        mat4.rotate(mvMatrix, degToRad(offsetAmount), og);
+        og[rotationOffsetAxis] = 1;
+        mat4.rotate(mvMatrix, degToRad(rotationOffsetAmount), og);
         
         var vg = [0, 0, 0];
-        vg[verticalGravityAxis] = 1;
-        mat4.rotate(mvMatrix, degToRad(player.rotationVector[verticalGravityAxis]), vg);
+        vg[verticalRotationAxis] = 1;
+        mat4.rotate(mvMatrix, degToRad(player.rotationVector[verticalRotationAxis]), vg);
         
         var hg = [0, 0, 0];
-        hg[horizontalGravityAxis] = 1;
-        mat4.rotate(mvMatrix, degToRad(player.rotationVector[horizontalGravityAxis]), hg);
+        hg[horizontalRotationAxis] = 1;
+        mat4.rotate(mvMatrix, degToRad(horizontalRotationSign * player.rotationVector[horizontalRotationAxis]), hg);
         
-        //mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
+        mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
         cube.draw(lightShaderProgram);
 		
@@ -659,7 +662,7 @@
 	}
     
     function handleMouseClick(evt) {
-        //fall = true;
+        fall = true;
 	}
     
     function debug(text) {
