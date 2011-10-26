@@ -134,7 +134,7 @@
 <script type="text/javascript">
     
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
-    var MOUSE_EXPONENT = 1.3; // Higher = quicker ramp up
+    var MOUSE_EXPONENT = 1.4; // Higher = quicker ramp up
     var MOVEMENT_SPEED = -0.07;
     
     var canvas;
@@ -158,9 +158,12 @@
     var keyDown = new Array();
     var mousePos = vec3.create();
     
-    var playerLocalOffset = vec3.create();
-    var playerGlobalPosition = vec3.create();
-    var playerRotation = vec3.create();
+    var player;
+    
+    var horizontalGravityAxis;
+    var verticalGravityAxis;
+    var offsetAxis;
+    var gravitySign;
 
     var cube;
     var crosshair;
@@ -227,10 +230,14 @@
     }
     
     function createObjects() {
-        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
+        player = new GameObject("Player", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, false, null);
+        
+        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
         cube.loadModel("models/Level1.obj");
+        
         crosshair = new HUDObject("textures/Crosshair.png");
-		test = new GameObject("test", [0.0, -0.2, -0.4], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
+		
+        test = new GameObject("test", [0.0, -0.2, -0.4], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
 		test.loadModel("models/cube.obj");
     }
 
@@ -397,61 +404,125 @@
     }
            
     function checkKeys() {
-        if (keyDown[39] || keyDown[68]) { // Right
-            playerLocalOffset[0] += MOVEMENT_SPEED;
+        if (keyDown[87]) { // W
+            player.globalPosition[2] += MOVEMENT_SPEED;
         }
         
-        if (keyDown[37] || keyDown[65]) { // Left
-            playerLocalOffset[0] -= MOVEMENT_SPEED;
+        if (keyDown[83]) { // S
+            player.globalPosition[2] -= MOVEMENT_SPEED;
         }
         
-        if (keyDown[38] || keyDown[87]) { // Up
-            playerLocalOffset[2] += MOVEMENT_SPEED;
+        if (keyDown[65]) { // A
+            player.globalPosition[0] += MOVEMENT_SPEED;
         }
         
-        if (keyDown[40] || keyDown[83]) { // Down
-            playerLocalOffset[2] -= MOVEMENT_SPEED;
+        if (keyDown[68]) { // D
+            player.globalPosition[0] -= MOVEMENT_SPEED;
         }
         
-        playerGlobalPosition[0] -= playerLocalOffset[2] * Math.sin(degToRad(playerRotation[0]));
-        playerGlobalPosition[2] += playerLocalOffset[2] * Math.cos(degToRad(playerRotation[0]));
+        if (keyDown[37]) { // Left
+            player.gravityVector = [-1, 0, 0];
+            changeGravity()
+        }
         
-        playerGlobalPosition[0] -= playerLocalOffset[0] * Math.sin(degToRad(90.0 + playerRotation[0]));
-        playerGlobalPosition[2] += playerLocalOffset[0] * Math.cos(degToRad(90.0 + playerRotation[0]));
+        if (keyDown[38]) { // Up
+            player.gravityVector = [0, 0, 1];
+            changeGravity()
+        }
         
-        playerLocalOffset[0] = 0.0;
-        playerLocalOffset[1] = 0.0;
-        playerLocalOffset[2] = 0.0;
+        if (keyDown[39]) { // Right
+            player.gravityVector = [1, 0, 0];
+            changeGravity()
+        }
+        
+        if (keyDown[40]) { // Down
+            player.gravityVector = [0, -1, 0];
+            changeGravity()
+        }
+        
+        /*
+        player.globalPosition[0] -= player.localOffset[2] * Math.sin(degToRad(player.rotationVector[0]));
+        player.globalPosition[2] += player.localOffset[2] * Math.cos(degToRad(player.rotationVector[0]));
+        
+        player.globalPosition[0] -= player.localOffset[0] * Math.sin(degToRad(90.0 + player.rotationVector[0]));
+        player.globalPosition[2] += player.localOffset[0] * Math.cos(degToRad(90.0 + player.rotationVector[0]));
+        */
+    
+        player.localOffset[0] = 0.0;
+        player.localOffset[1] = 0.0;
+        player.localOffset[2] = 0.0;
     }
     
-    function checkMouse() {
-        if (mousePos[0] >= 0) {
-            playerRotation[0] += Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-            playerRotation[0] %= 360;
+    function changeGravity() {
+        //player.rotationVector = [0.0, 0.0, -1.0];        
+    }
+    
+    function getGravityInfo(object) {
+        // Figure out axis and sign for gravity vector
+        if (object.gravityVector[0] != 0) {
+            offsetAxis = 2;
+            horizontalGravityAxis = 0;
+            verticalGravityAxis = 1;
+            gravitySign = -1;
+        } else if (object.gravityVector[1] != 0) {
+            offsetAxis = 2;
+            horizontalGravityAxis = 1;
+            verticalGravityAxis = 0;
+            gravitySign = 1;
         } else {
-            playerRotation[0] -= Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-            if (playerRotation[0] < 0) {
-                playerRotation[0] = 360;
-            }
+            offsetAxis = 0;
+            horizontalGravityAxis = 2;
+            verticalGravityAxis = 0;
+            gravitySign = -1;
         }
-          
-        if (mousePos[1] >= 0) {
-            playerRotation[1] += Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-            if (playerRotation[1] >= 90) {
-                playerRotation[1] = 90;
-            }
+    }
+    
+    function checkMouse() {  
+        getGravityInfo(player);
+        
+        // Mouse x-axis
+        if (mousePos[0] >= 0) {
+            player.rotationVector[horizontalGravityAxis] += gravitySign * Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
         } else {
-            playerRotation[1] -= Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
-            if (playerRotation[1] <= -90) {
-                playerRotation[1] = -90;
-            }
+            player.rotationVector[horizontalGravityAxis] -= gravitySign * Math.pow(Math.abs(mousePos[0]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        }
+        
+        if (player.rotationVector[horizontalGravityAxis] < 0) {
+                player.rotationVector[horizontalGravityAxis] = 360;
+        } else {
+            player.rotationVector[horizontalGravityAxis] %= 360;
+        }
+
+        // Mouse y-axis
+        var maxOffset = 0;
+        if (mousePos[1] >= 0) {
+            player.rotationVector[verticalGravityAxis] += Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        } else {
+            player.rotationVector[verticalGravityAxis] -= Math.pow(Math.abs(mousePos[1]) / 100 * MOUSE_SENSITIVITY, MOUSE_EXPONENT);
+        }
+
+        if (horizontalGravityAxis == 2) {
+            maxOffset = 90;
+        }
+        if (player.rotationVector[verticalGravityAxis] >= 90 + maxOffset) {
+            player.rotationVector[verticalGravityAxis] = 90 + maxOffset;
+        } else if (player.rotationVector[verticalGravityAxis] <= -90 + maxOffset) {
+            player.rotationVector[verticalGravityAxis] = -90 + maxOffset;
+        }
+        
+        if (horizontalGravityAxis == 0) {
+            player.rotationVector[offsetAxis] = -90.0;
+        } else if (horizontalGravityAxis == 1) {
+            player.rotationVector[offsetAxis] = 0.0;
+        } else if (horizontalGravityAxis == 2) {
+            player.rotationVector[offsetAxis] = -90.0;
         }
     }
     
     function startRay() {
-		var rayDir = [playerGlobalPosition[0] + rayLen * Math.sin(degToRad(playerRotation[0])) * Math.cos(degToRad(playerRotation[1])),
-                      playerGlobalPosition[1] - rayLen * Math.sin(degToRad(playerRotation[1])),
-                      playerGlobalPosition[2] - rayLen * Math.cos(degToRad(playerRotation[0])) * Math.cos(degToRad(playerRotation[1]))];
+		var rayDir = [player.globalPosition[0] + rayLen * Math.sin(degToRad(player.rotationVector[0])) * Math.cos(degToRad(player.rotationVector[1])),
+                      player.globalPosition[1] - rayLen * Math.sin(degToRad(player.rotationVector[1])),
+                      player.globalPosition[2] - rayLen * Math.cos(degToRad(player.rotationVector[0])) * Math.cos(degToRad(player.rotationVector[1]))];
 		return rayCheck(rayDir);
 	}
 	
@@ -459,13 +530,13 @@
 		var minDist;
 		var minObj;
 		for (var t = 0; t <= 1; t += rayIter) {
-			var rx = playerGlobalPosition[0] + ((direction[0] - playerGlobalPosition[0]) * t);
-			var ry = playerGlobalPosition[1] + ((direction[1] - playerGlobalPosition[1]) * t);
-			var rz = playerGlobalPosition[2] + ((direction[2] - playerGlobalPosition[2]) * t);
+			var rx = player.globalPosition[0] + ((direction[0] - player.globalPosition[0]) * t);
+			var ry = player.globalPosition[1] + ((direction[1] - player.globalPosition[1]) * t);
+			var rz = player.globalPosition[2] + ((direction[2] - player.globalPosition[2]) * t);
 			if (rx >= (test.globalPosition[0] - (0.5 * test.width)) && rx <= (test.globalPosition[0] + (0.5 * test.width))) {
 				if (ry >= (test.globalPosition[1] - (0.5 * test.height)) && ry <= (test.globalPosition[1] + (0.5 * test.height))) {
 					if (rz >= (test.globalPosition[2] - (0.5 * test.depth)) && rz <= (test.globalPosition[2] + (0.5 * test.depth))) {
-						var objDist = Math.sqrt(Math.pow(rx - playerGlobalPosition[0], 2) + Math.pow(ry - playerGlobalPosition[1], 2) + Math.pow(rz - playerGlobalPosition[2], 2));
+						var objDist = Math.sqrt(Math.pow(rx - player.globalPosition[0], 2) + Math.pow(ry - player.globalPosition[1], 2) + Math.pow(rz - player.globalPosition[2], 2));
 						if (minDist == null) {
 							minDist = objDist
 							minObj = test;
@@ -493,12 +564,21 @@
         mvPushMatrix();
         
         // Apply player transformations
-        mat4.translate(mvMatrix, [0.0, -0.3, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation[1]), [1.0, 0.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation[0]), [0.0, 1.0, 0.0]);
-        mat4.rotate(mvMatrix, degToRad(playerRotation[2]), [0.0, 0.0, 1.0]);
+        getGravityInfo(player)
         
-        mat4.translate(mvMatrix, [-playerGlobalPosition[0], -playerGlobalPosition[1], -playerGlobalPosition[2]]);
+        var og = [0, 0, 0];
+        og[offsetAxis] = 1;
+        mat4.rotate(mvMatrix, degToRad(player.rotationVector[offsetAxis]), og);
+        
+        var vg = [0, 0, 0];
+        vg[verticalGravityAxis] = 1;
+        mat4.rotate(mvMatrix, degToRad(player.rotationVector[verticalGravityAxis]), vg);
+        
+        var hg = [0, 0, 0];
+        hg[horizontalGravityAxis] = 1;
+        mat4.rotate(mvMatrix, degToRad(player.rotationVector[horizontalGravityAxis]), hg);
+        
+        mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
         cube.draw(lightShaderProgram);
 		
@@ -550,7 +630,7 @@
         }
     }
     
-    function checkCollision(obj1,obj2) {
+    function checkCollision(obj1, obj2) {
     	//console.log(x,z);
     	//check each vertex to see if it's hitting anything else
     	for(i=0;i<obj1.vertices.length;i+=3){

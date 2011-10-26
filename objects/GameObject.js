@@ -3,10 +3,9 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
     
     this.name = name; // Name of Object
 
-    this.localOffset;
+    this.localOffset = [0.0, 0.0, 0.0];
     this.globalPosition = globalPosition; // Vec3 in global coords
     
-    this.center = [0,0,0];
     this.width = 0;
 	this.height = 0;
 	this.depth = 0;
