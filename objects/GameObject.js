@@ -15,6 +15,9 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
     this.gravityVector = gravityVector; // Direction of gravity in global coords
     this.rotationVector = rotationVector; // Vec3 in local coords
     
+    this.gravLocked = false;
+    this.fall = false;
+    
     this.isTextured = isTextured;
     this.isHudObject = isHudObject;
 	this.isModel = false;
