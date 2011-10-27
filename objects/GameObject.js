@@ -6,9 +6,7 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
     this.localOffset = [0.0, 0.0, 0.0];
     this.globalPosition = globalPosition; // Vec3 in global coords
     
-    this.width = 0;
-	this.height = 0;
-	this.depth = 0;
+    this.dimensions = [0, 0, 0]; // Width, Height, Depth
     
     this.mass = mass; // Mass of object in kg
     
@@ -17,6 +15,18 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
     
     this.gravLocked = false;
     this.fall = false;
+    
+    this.localX;
+    this.localY;
+    this.localZ;
+    
+    this.invertX;
+    this.invertY;
+    this.invertZ;
+    
+    this.orientOffset;
+    this.orientAxis;
+    this.gravitySign;
     
     this.isTextured = isTextured;
     this.isHudObject = isHudObject;
@@ -111,9 +121,9 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
                 if (maxZ < that.vertices[i + 2]) { maxZ = that.vertices[i + 2]; }
             }
         }
-        that.width = maxX - minX;
-        that.height = maxY - minY;
-		that.depth = maxZ - minZ;
+        that.dimensions[0] = maxX - minX;
+        that.dimensions[1] = maxY - minY;
+		that.dimensions[2] = maxZ - minZ;
 	}
     
     this.initObject = function() {
