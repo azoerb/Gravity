@@ -131,6 +131,8 @@
 
 <script type="text/javascript" src="objects/GameObject.js"></script>
 
+<script type="text/javascript" src="objects/BeamObject.js"></script>
+
 <script type="text/javascript">
     
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
@@ -176,13 +178,15 @@
     var prevTime = 0;
     var elapsed = 0;
 	
+	var rayTracing = false;
   
     function init() {
         canvas = document.getElementById("Canvas");
     
         document.onkeyup = handleKeyUp;
         document.onkeydown = handleKeyDown;
-        document.onclick = handleMouseClick;
+        document.onmousedown = handleMouseDown;
+		document.onmouseup = handleMouseUp;
         document.onmousemove = handleMouseMove;
                 
         webGLStart(canvas);
@@ -198,6 +202,7 @@
         createObjects();
         initShaders();
         initBuffers();
+		setBallList(20);
         
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
@@ -234,6 +239,9 @@
 		
         test = new GameObject("test", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
 		test.loadModel("models/cube.obj");
+		
+		beam = new GameObject("beam", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/beam.png");
+		beam.loadModel("models/beam.obj");
         
         changeGravity();
     }
@@ -371,6 +379,7 @@
         
         cube.initObject();
 		test.initObject();
+		beam.initObject();
     }
     
     function mvPushMatrix() {
@@ -557,8 +566,6 @@
 	}
 	
 	function rayCheck (direction) {
-		var minDist;
-		var minObj;
 		for (var t = 0; t <= 1; t += rayIter) {
 			var rx = player.globalPosition[0] + ((direction[0] - player.globalPosition[0]) * t);
 			var ry = player.globalPosition[1] + ((direction[1] - player.globalPosition[1]) * t);
@@ -566,20 +573,12 @@
 			if (rx >= (test.globalPosition[0] - (0.5 * test.dimensions[0])) && rx <= (test.globalPosition[0] + (0.5 * test.dimensions[0]))) {
 				if (ry >= (test.globalPosition[1] - (0.5 * test.dimensions[1])) && ry <= (test.globalPosition[1] + (0.5 * test.dimensions[1]))) {
 					if (rz >= (test.globalPosition[2] - (0.5 * test.dimensions[2])) && rz <= (test.globalPosition[2] + (0.5 * test.dimensions[2]))) {
-						var objDist = Math.sqrt(Math.pow(rx - player.globalPosition[0], 2) + Math.pow(ry - player.globalPosition[1], 2) + Math.pow(rz - player.globalPosition[2], 2));
-						if (minDist == null) {
-							minDist = objDist
-							minObj = test;
-						}
-						else if (objDist < minDist) {
-                            minDist = objDist
-                            minObj = test;
-						}
+						return test;
 					}
 				}
 			}
 		}
-		return minObj;
+		return null;
 	}
     
     function drawScene() {
@@ -589,6 +588,10 @@
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
         mat4.identity(mvMatrix);
         
+		if (rayTracing) {
+			drawBeam();
+		}
+		
         // Draw Cube
         gl.useProgram(lightShaderProgram);
         mvPushMatrix();
@@ -680,13 +683,27 @@
             mousePos[1] = evt.y - canvas.offsetTop - canvas.height / 2;
         }
 	}
-    
-    function handleMouseClick(evt) {
-        if (test.fall == false) {
+	
+	function handleMouseDown(evt) {
+		rayTracing = true;
+		var minObj = startRay();
+		if (minObj != null) {
+			//fall = true;
+		}
+		if (test.fall == false) {
             test.fall = true;
         } else {
             test.fall = false;
         }
+        
+	}
+	
+	function handleMouseUp(evt) {
+		rayTracing = false;
+	}
+    
+    function handleMouseClick(evt) {
+        
 	}
     
     function debug(text) {
