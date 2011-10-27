@@ -239,7 +239,7 @@
         
         crosshair = new HUDObject("textures/Crosshair.png");
 		
-        test = new GameObject("test", [0.0, 0.0, -1.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
+        test = new GameObject("test", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
 		test.loadModel("models/cube.obj");
     }
 
@@ -488,33 +488,39 @@
             if (object.gravityVector[0] > 0) {
                 invertY = -1;
                 orientOffset = -90.0;
+                gravitySign = 1;
             } else {
                 invertX = -1;
                 orientOffset = 90.0;
+                gravitySign = -1;
             }
         } else if (object.gravityVector[1] != 0) {
             orientAxis = 2;
             localX = 0;
             localY = 1;
             localZ = 2;
-            if (object.gravityVector[0] > 0) {
+            if (object.gravityVector[1] > 0) {
                 invertX = -1;
                 invertY = -1;
                 orientOffset = 180.0;
+                gravitySign = 1;
             } else {
                 orientOffset = 0.0;
+                gravitySign = -1;
             }
         } else {
             orientAxis = 0;
             localX = 0;
             localY = 2;
             localZ = 1;
-            if (object.gravityVector[0] > 0) {
+            if (object.gravityVector[2] > 0) {
                 orientOffset = 90.0;
                 invertY = -1;
+                gravitySign = 1;
             } else {
                 invertZ = -1;
                 orientOffset = -90.0;
+                gravitySign = -1;
             }
         }
     }
@@ -636,19 +642,13 @@
         fps = 1000 / timeDelta;
         
 		if(test.fall) {
-            if (!checkCollision(test, cube)) {
-                objAnimate(test, timeDelta);
-            } else {
-                test.fall = false;
-            }
+            objAnimate(test, timeDelta);
         }
         
         checkMouse();
                 
         checkKeys();
-        
-        //debug("Test = " + test.gravityVector[0] + ", " + test.gravityVector[1] + ", " + test.gravityVector[2]);
-        
+                
         var minObj = startRay();
 		if (minObj != null) {
 			console.log(minObj.name);
@@ -657,8 +657,13 @@
     
     function objAnimate(obj, timeDelta) {
         gravToGlobal(obj);
-        if (obj.fall) {
-            obj.globalPosition[verticalMovementAxis] += gravitySign * 9.8 * timeDelta / 5000.0;
+        console.log("" + checkCollision(obj, cube) > 0.05);
+        if (checkCollision(obj, cube) > 0.05) {
+            obj.globalPosition[localY] += gravitySign * 9.8 * timeDelta / 5000.0;
+        } else {
+            console.log("yup");
+            obj.globalPosition[localY] += gravitySign * 0.05;
+            obj.fall = false;
         }
     }
     
@@ -666,21 +671,10 @@
         gravToGlobal(obj1);
     	//console.log(x,z);
     	//check each vertex to see if it's hitting anything else
-        if ((obj1.globalPosition[0] < -1 || obj1.globalPosition[0] > 1) ||
-            (obj1.globalPosition[1] < -1 || obj1.globalPosition[1] > 1) ||
-            (obj1.globalPosition[2] < -1 || obj1.globalPosition[2] > 1)) {
-            return true;
-        }
-        /*
-    	for(i=0;i<obj1.vertices.length;i+=3){
-    		for(j=0;j<obj2.vertices.length;j+=3){
-    			if((Math.abs(obj1.vertices[i+1]+obj1.globalPosition[verticalMovementAxis]-obj2.vertices[j+1])<0.02)){
-    				//console.log("YES!!");
-    				return true;
-    			}
-    		}
-    	}
-        */
+        var dist;
+        dist = 1 - Math.abs(obj1.globalPosition[localY]);
+        debug("" + dist);
+        return dist;
     }
     
     function handleKeyDown(evt) {
@@ -690,7 +684,7 @@
     function handleKeyUp(evt) {
         keyDown[evt.keyCode] = false;
     }
-        
+    
     function handleMouseMove(evt) {
         if (navigator.userAgent.indexOf("Firefox")!=-1) {
             mousePos[0] = evt.clientX - canvas.offsetLeft - canvas.width / 2;
