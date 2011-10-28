@@ -133,6 +133,9 @@
 
 <script type="text/javascript" src="objects/BeamObject.js"></script>
 
+<script type="text/javascript" src="objects/LevelObject.js"></script>
+
+
 <script type="text/javascript">
     
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
@@ -232,8 +235,25 @@
     function createObjects() {
         player = new GameObject("Player", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, false, null);
         
-        cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
-        cube.loadModel("models/Level1.obj");
+        //cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
+        //cube.loadModel("models/Level1.obj");
+        LvlTop=new LevelObject("top",[0,0,0],true,false,"textures/CubeTop.png");
+        LvlTop.loadModel("models/LvlTop.obj");
+        
+        LvlBot=new LevelObject("bottom",[0,0,0],true,false,"textures/CubeBot.png");
+        LvlBot.loadModel("models/LvlBot.obj");
+        
+        LvlLt=new LevelObject("left",[0,0,0],true,false,"textures/CubeLt.png");
+        LvlLt.loadModel("models/LvlLft.obj");
+        
+        LvlRt=new LevelObject("right",[0,0,0],true,false,"textures/CubeRt.png");
+        LvlRt.loadModel("models/LvlRt.obj");
+        
+        LvlFrnt=new LevelObject("front",[0,0,0],true,false,"textures/CubeFrt.png");
+        LvlFrnt.loadModel("models/LvlFrnt.obj");
+        
+        LvlBack=new LevelObject("back",[0,0,0],true,false,"textures/CubeBack.png");
+        LvlBack.loadModel("models/LvlBack.obj");
         
         crosshair = new HUDObject("textures/Crosshair.png");
 		
@@ -377,7 +397,14 @@
         
         crosshair.initObject();
         
-        cube.initObject();
+       // cube.initObject();
+       	LvlTop.initObject();
+       	LvlBot.initObject();
+       	LvlRt.initObject();
+       	LvlLt.initObject();
+       	LvlFrnt.initObject();
+       	LvlBack.initObject();
+		
 		test.initObject();
 		beam.initObject();
     }
@@ -610,7 +637,13 @@
         
         mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
-        cube.draw(lightShaderProgram);
+        //cube.draw(lightShaderProgram);
+		LvlTop.draw(lightShaderProgram);
+		LvlBot.draw(lightShaderProgram);
+		LvlRt.draw(lightShaderProgram);
+		LvlLt.draw(lightShaderProgram);
+		LvlFrnt.draw(lightShaderProgram);
+		LvlBack.draw(lightShaderProgram);
 		
         mvPushMatrix();
 		mat4.translate(mvMatrix, test.globalPosition);
@@ -649,7 +682,7 @@
     }
     
     function objAnimate(obj, timeDelta) {
-        if (checkCollision(obj, cube) > 0.05) {
+        if (checkCollision(obj, LvlTop) > 0.05) {
             obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
         } else {
             obj.globalPosition[obj.localY] += obj.gravitySign * 0.05;
