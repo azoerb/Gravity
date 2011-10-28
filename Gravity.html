@@ -179,6 +179,7 @@
 	var rayIter = 0.001;
 
 	var rayTracing = false;
+	var showMenu = true;
   
     function init() {
         canvas = document.getElementById("Canvas");
@@ -188,6 +189,7 @@
         document.onmousedown = handleMouseDown;
 		document.onmouseup = handleMouseUp;
         document.onmousemove = handleMouseMove;
+		document.onclick = handleMouseClick;
                 
         webGLStart(canvas);
         
@@ -255,6 +257,8 @@
         lvlBack.loadModel("models/lvlBack.obj");
         
         crosshair = new HUDObject("textures/Crosshair.png");
+		title = new HUDObject("images/title.png");
+		playButton = new HUDObject("images/menu_play.png");
 		
         test = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube1.jpg");
 		test.loadModel("models/cube.obj");
@@ -395,6 +399,34 @@
         crosshair.indices = [0, 1, 2, 0, 2, 3];
         
         crosshair.initObject();
+		
+		title.vertices = [-4.0, -3.0,  0.0,
+                          4.0, -3.0,  0.0,
+                          4.0,  3.0,  0.0,
+                         -4.0,  3.0,  0.0];
+                             
+        title.textCoords = [0.0, 0.0,
+                            1.0, 0.0,
+                            1.0, 1.0,
+                            0.0, 1.0];
+                                
+        title.indices = [0, 1, 2, 0, 2, 3];
+        
+        title.initObject();
+		
+		playButton.vertices = [-2.0, -1.0,  0.0,
+				  2.0, -1.0,  0.0,
+				  2.0,  1.0,  0.0,
+				 -2.0,  1.0,  0.0];
+                             
+        playButton.textCoords = [0.0, 0.0,
+                            1.0, 0.0,
+                            1.0, 1.0,
+                            0.0, 1.0];
+                                
+        playButton.indices = [0, 1, 2, 0, 2, 3];
+        
+        playButton.initObject();
         
        // cube.initObject();
        	lvlTop.initObject();
@@ -498,8 +530,13 @@
         player.localOffset[2] = 0.0;
     }
     
+	function rayVec() {
+		this.gravityVector = [0,-1,0];
+	}
+	var rayVector = new rayVec();
     function changeGravity() {
         gravToGlobal(player);
+		gravToGlobal(rayVector);
         player.fall = true;
         if (!test.gravLocked) {
             test.gravityVector = player.gravityVector;
@@ -586,9 +623,11 @@
     }
     
     function startRay() {
-		var rayDir = [player.globalPosition[0] + rayLen * Math.sin(degToRad(player.rotationVector[0])) * Math.cos(degToRad(player.rotationVector[1])),
-                      player.globalPosition[1] - rayLen * Math.sin(degToRad(player.rotationVector[1])),
-                      player.globalPosition[2] - rayLen * Math.cos(degToRad(player.rotationVector[0])) * Math.cos(degToRad(player.rotationVector[1]))];
+		var xRot = rayVector.localY;
+		var yRot = rayVector.localX;
+		var rayDir = [player.globalPosition[0] + rayLen * Math.sin(degToRad(player.rotationVector[xRot])) * Math.cos(degToRad(player.rotationVector[yRot])),
+                      player.globalPosition[1] -  rayLen * Math.sin(degToRad(player.rotationVector[yRot])),
+                      player.globalPosition[2] - rayLen * Math.cos(degToRad(player.rotationVector[xRot])) * Math.cos(degToRad(player.rotationVector[yRot]))];
 		return rayCheck(rayDir);
 	}
 	
@@ -600,6 +639,7 @@
 			if (rx >= (test.globalPosition[0] - (0.5 * test.dimensions[0])) && rx <= (test.globalPosition[0] + (0.5 * test.dimensions[0]))) {
 				if (ry >= (test.globalPosition[1] - (0.5 * test.dimensions[1])) && ry <= (test.globalPosition[1] + (0.5 * test.dimensions[1]))) {
 					if (rz >= (test.globalPosition[2] - (0.5 * test.dimensions[2])) && rz <= (test.globalPosition[2] + (0.5 * test.dimensions[2]))) {
+						console.log("test");
 						return test;
 					}
 				}
@@ -615,50 +655,67 @@
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
         mat4.identity(mvMatrix);
         
-		if (rayTracing) {
-			drawBeam();
+		if (showMenu) {
+			
+			
+			gl.useProgram(lightShaderProgram);
+			test.draw(lightShaderProgram);
+			gl.useProgram(textureShaderProgram);
+			mvPushMatrix();
+			mat4.translate(mvMatrix, [0.0, 0.0, -7.3]);
+			title.draw(textureShaderProgram);
+			mvPopMatrix();
+			mvPushMatrix();
+			mat4.translate(mvMatrix, [-2.0, 1.0, -12.0]);
+			playButton.draw(textureShaderProgram);
+			mvPopMatrix();
 		}
-		
-        // Draw Cube
-        gl.useProgram(lightShaderProgram);
-        mvPushMatrix();
-        
-        var og = [0, 0, 0];
-        og[player.orientAxis] = 1;
-        mat4.rotate(mvMatrix, degToRad(player.orientOffset), og);
-        
-        var vg = [0, 0, 0];
-        vg[player.localX] = 1;
-        mat4.rotate(mvMatrix, degToRad(player.rotationVector[player.localX]), vg);
-        
-        var hg = [0, 0, 0];
-        hg[player.localY] = 1;
-        mat4.rotate(mvMatrix, degToRad(player.rotationVector[player.localY]), hg);
-        
-        mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
+		else {
+			if (rayTracing) {
+				drawBeam();
+			}
+			
+			// Draw Cube
+			gl.useProgram(lightShaderProgram);
+			mvPushMatrix();
+			
+			var og = [0, 0, 0];
+			og[player.orientAxis] = 1;
+			mat4.rotate(mvMatrix, degToRad(player.orientOffset), og);
+			
+			var vg = [0, 0, 0];
+			vg[player.localX] = 1;
+			mat4.rotate(mvMatrix, degToRad(player.rotationVector[player.localX]), vg);
+			
+			var hg = [0, 0, 0];
+			hg[player.localY] = 1;
+			mat4.rotate(mvMatrix, degToRad(player.rotationVector[player.localY]), hg);
+			
+			mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
-        //cube.draw(lightShaderProgram);
-		lvlTop.draw(lightShaderProgram);
-		lvlBot.draw(lightShaderProgram);
-		lvlRt.draw(lightShaderProgram);
-		lvlLt.draw(lightShaderProgram);
-		lvlFrnt.draw(lightShaderProgram);
-		lvlBack.draw(lightShaderProgram);
+			//cube.draw(lightShaderProgram);
+			lvlTop.draw(lightShaderProgram);
+			lvlBot.draw(lightShaderProgram);
+			lvlRt.draw(lightShaderProgram);
+			lvlLt.draw(lightShaderProgram);
+			lvlFrnt.draw(lightShaderProgram);
+			lvlBack.draw(lightShaderProgram);
+			
+			mvPushMatrix();
+			mat4.translate(mvMatrix, test.globalPosition);
+			test.draw(lightShaderProgram);
+			
+			mvPopMatrix();
+			mvPopMatrix();
+			
+			// Draw Crosshair
+			mvPushMatrix();
+			gl.useProgram(textureShaderProgram);
+			mat4.translate(mvMatrix, [0.0, 0.0, -50.0]);
 		
-        mvPushMatrix();
-		mat4.translate(mvMatrix, test.globalPosition);
-        test.draw(lightShaderProgram);
-        
-		mvPopMatrix();
-        mvPopMatrix();
-        
-        // Draw Crosshair
-        mvPushMatrix();
-        gl.useProgram(textureShaderProgram);
-        mat4.translate(mvMatrix, [0.0, 0.0, -50.0]);
-    
-        crosshair.draw(textureShaderProgram);
-        mvPopMatrix();
+			crosshair.draw(textureShaderProgram);
+			mvPopMatrix();
+		}
     }
 
     function update() {
@@ -671,25 +728,22 @@
         currentTime = new Date();
         timeDelta = currentTime - oldTime;
         fps = 1000 / timeDelta;
-
-		if (test.fall) {
-            objAnimate(test, timeDelta);
-        }
-        
-        if (player.fall) {
-            debug("falling");
-            //objAnimate(player, timeDelta);
-        } else {
-            debug("not falling");
-        }
-        
-        checkMouse();
-                
-        checkKeys();
-                
-        var minObj = startRay();
-		if (minObj != null) {
-            //
+		checkMouse();
+		if(!showMenu) {
+			if (test.fall) {
+				objAnimate(test, timeDelta);
+			}
+			
+			if (player.fall) {
+				debug("falling");
+				//objAnimate(player, timeDelta);
+			} else {
+				debug("not falling");
+			}
+			
+			
+					
+			checkKeys();
 		}
     }
     
@@ -731,17 +785,18 @@
 	}
 	
 	function handleMouseDown(evt) {
-		rayTracing = true;
-		var minObj = startRay();
-		if (minObj != null) {
-			//fall = true;
+		if (!showMenu) {
+			rayTracing = true;
+			var minObj = startRay();
+			if (minObj != null) {
+				//fall = true;
+			}
+			if (test.fall == false) {
+				test.fall = true;
+			} else {
+				test.fall = false;
+			}
 		}
-        player.fall = true;
-		if (test.fall == false) {
-            test.fall = true;
-        } else {
-            test.fall = false;
-        }
         
 	}
 	
@@ -750,7 +805,17 @@
 	}
     
     function handleMouseClick(evt) {
-        
+        if (showMenu) {
+			var playButtonX = -240;
+			var playButtonY = -120;
+			var playButtonWidth = 240;
+			var playButtonHeight = 120;
+			if (mousePos[0] >= playButtonX && mousePos[0] <= playButtonX + playButtonWidth) {
+				if (mousePos[1] >= playButtonY && mousePos[1] <= playButtonY + playButtonHeight) {
+					showMenu = false;
+				}
+			}
+		}
 	}
     
     function debug(text) {
