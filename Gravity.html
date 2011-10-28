@@ -170,6 +170,9 @@
     var cube;
     var crosshair;
 	var test;
+	var door;
+	var sensor;
+	var drawDoor=false;
 	
     var ambientLight = [0.2, 0.2, 0.2];
 	var lightPos = [1.0, 3.0, 0.0];
@@ -270,6 +273,12 @@
 		
 		beam = new GameObject([0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, "textures/beam.png");
 		beam.loadModel("models/beam.obj");
+		
+		sensor = new GameObject([0.0,1.85,0.0], 60.0, [0, -1,0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube2.jpg");
+		sensor.loadModel("models/sensor.obj");
+		
+		door = new GameObject([0, -1, 1.96], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, "textures/ramp2-pPlane1.jpg");
+		door.loadModel("models/door.obj");
         
         changeGravity();
     }
@@ -443,6 +452,8 @@
 		
 		test.initObject();
 		beam.initObject();
+		sensor.initObject();
+		door.initObject();
     }
     
     function mvPushMatrix() {
@@ -542,10 +553,13 @@
     function changeGravity() {
         gravToGlobal(player);
 		gravToGlobal(rayVector);
+		gravToGlobal(door);
+		gravToGlobal(sensor);
         player.fall = true;
         if (!test.gravLocked) {
             test.gravityVector = player.gravityVector;
             gravToGlobal(test);
+            test.fall=true;
         }
     }
     
@@ -711,6 +725,17 @@
 			test.draw(lightShaderProgram);
 			
 			mvPopMatrix();
+			mvPushMatrix();
+			mat4.translate(mvMatrix, sensor.globalPosition);
+       	 	sensor.draw(lightShaderProgram);
+        
+			mvPopMatrix();
+			if(drawDoor){
+				mvPushMatrix();
+				mat4.translate(mvMatrix, door.globalPosition);
+       			door.draw(lightShaderProgram);
+        		mvPopMatrix();
+        	}
 			mvPopMatrix();
 			
 			// Draw Crosshair
@@ -743,7 +768,8 @@
 			if (player.fall) {
 				objAnimate(player, timeDelta);
 			}
-					
+			
+			
 			checkKeys();
             var minObj = startRay();
             if (minObj != null) {
@@ -755,7 +781,15 @@
     function objAnimate(obj, timeDelta) {    
         var walls = [lvlTop, lvlBot, lvlRt, lvlLt, lvlBack, lvlFrnt];
         var dist = checkCollision(obj, walls);
-
+        var sensorArray =[sensor];
+        console.log("sensor"+sensorArray[0].globalPosition);
+		if(checkCollision(obj, sensorArray)[test.localY] < Math.abs(obj.gravitySign * 9.8 * timeDelta / 5000.0)){
+        	console.log("hit sensor");
+        	obj.fall=false;
+        	sensorArray[0].globalPosition[sensorArray[0].localY]+=0.05;
+        	alert("you opened the door!");
+        	drawDoor=true;
+        }
         if (dist[obj.localY] > Math.abs(obj.gravitySign * 9.8 * timeDelta / 5000.0)) {
             obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
         } else {
@@ -810,11 +844,11 @@
 			if (minObj != null) {
 				//Do stuff
 			}
-			if (test.fall == false) {
+			/*if (test.fall == false) {
 				test.fall = true;
 			} else {
 				test.fall = false;
-			}
+			}*/
 		}
 	}
 	
