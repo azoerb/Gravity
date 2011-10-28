@@ -50,7 +50,10 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
 	this.normals = [];
 
     this.indicesBuffer;
-    this.indices = [];   
+    this.indices = [];
+    
+    //half widths
+    this.r=[]
 
 	this.loadModel = function(path) {
 		that.isModel = true;
@@ -138,6 +141,24 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(that.normals), gl.STATIC_DRAW);
 		that.normalBuffer.itemSize = 3;
         that.normalBuffer.numItems = that.normals.length / 3;
+		
+		//find half widths
+		
+		var dist1=0.0;
+		var dist2=0.0;
+		var dist3=0.0;
+		for(i=0;i<that.vertices.length;i+=3){
+				if(Math.abs(that.vertices[i])>dist1)
+					dist1=Math.abs(that.vertices[i])
+				if(Math.abs(that.vertices[i+1])>dist2)
+					dist2=Math.abs(that.vertices[i+1])
+				if(Math.abs(that.vertices[i+2])>dist3)
+					dist3=Math.abs(that.vertices[i+2])
+				}
+		that.r[0]=dist1;
+		that.r[1]=dist2;
+		that.r[2]=dist3;
+		console.log(that.r);
 		
         if (that.isTextured) {
             that.textCoordsBuffer = gl.createBuffer();

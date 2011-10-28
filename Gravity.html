@@ -637,7 +637,7 @@
         
         mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
-        //cube.draw(lightShaderProgram);
+        //Draw level walls
 		LvlTop.draw(lightShaderProgram);
 		LvlBot.draw(lightShaderProgram);
 		LvlRt.draw(lightShaderProgram);
@@ -682,21 +682,32 @@
     }
     
     function objAnimate(obj, timeDelta) {
-        if (checkCollision(obj, LvlTop) > 0.05) {
-            obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
-        } else {
-            obj.globalPosition[obj.localY] += obj.gravitySign * 0.05;
-            obj.fall = false;
+        if (checkCollision(obj, LvlTop)&&checkCollision(obj, LvlBot)&&checkCollision(obj, LvlRt)&&checkCollision(obj, LvlLt)&&checkCollision(obj, LvlBack)&&checkCollision(obj, LvlFrnt)) {
+ 				obj.globalPosition[obj.localY] += obj.gravitySign * 0.05;
+            	obj.fall = false;        
+            } 
+            else {
+            	obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
         }
     }
     
-    function checkCollision(obj1, obj2) {
+  /*  function checkCollision(obj1, obj2) {
     	//console.log(x,z);
     	//check each vertex to see if it's hitting anything else
         var dist;
         dist = 1 - Math.abs(obj1.globalPosition[obj1.localY]);
         debug("" + dist);
         return dist;
+    }*/
+    function checkCollision(obj1,obj2){
+    
+    	if ( Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]) > (obj1.r[obj1.localX] + obj2.r[obj1.localX])) return false;
+    	if ( Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]) > (obj1.r[obj1.localY] + obj2.r[obj1.localY])) return false;
+    	if ( Math.abs(obj1.globalPosition[obj1.localZ] - obj2.globalPosition[obj1.localZ]) > (obj1.r[obj1.localZ] + obj2.r[obj1.localZ])) return false;
+    	
+    	console.log("collision x check:"+Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]));
+    	return true;
+
     }
     
     function handleKeyDown(evt) {

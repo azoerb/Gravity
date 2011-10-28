@@ -31,7 +31,9 @@ function LevelObject(name, globalPosition, isTextured, isHudObject, textureImg) 
 	this.normals = [];
 
     this.indicesBuffer;
-    this.indices = [];   
+    this.indices = [];  
+    
+    this.r = [];
 
 	this.loadModel = function(path) {
 		that.isModel = true;
@@ -119,6 +121,22 @@ function LevelObject(name, globalPosition, isTextured, isHudObject, textureImg) 
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(that.normals), gl.STATIC_DRAW);
 		that.normalBuffer.itemSize = 3;
         that.normalBuffer.numItems = that.normals.length / 3;
+		
+		var dist1=0.0;
+		var dist2=0.0;
+		var dist3=0.0;
+		for(i=0;i<that.vertices.length-3;i+=3){
+				if(Math.abs(that.vertices[i]-that.vertices[i+3])>dist1)
+					dist1=Math.abs(that.vertices[i])
+				if(Math.abs(that.vertices[i+1]-that.vertices[i+4])>dist2)
+					dist2=Math.abs(that.vertices[i+1])
+				if(Math.abs(that.vertices[i+2]-that.vertices[i+5])>dist3)
+					dist3=Math.abs(that.vertices[i+2])
+				}
+		that.r[0]=dist1;
+		that.r[1]=dist2;
+		that.r[2]=dist3;
+		
 		
         if (that.isTextured) {
             that.textCoordsBuffer = gl.createBuffer();
