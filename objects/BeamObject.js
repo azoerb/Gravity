@@ -1,6 +1,6 @@
 	var ballList = new Array();
 	var ballAngleList = new Array();
-	var radiusFactor = 0.003;
+	var radiusFactor = 0.002;
 	
 	function setBallList(num) {
 		var repeats = 5;
@@ -30,8 +30,8 @@
 	}
 	
 	function drawBeam() {
-		var rotSpeed = 0.3;
-		var beamSpeed = 0.005;
+		var rotSpeed = 0.5;
+		var beamSpeed = 0.01;
 		mvPushMatrix();
         gl.useProgram(textureShaderProgram);
 		mat4.translate(mvMatrix, [0.0, -0.08, 0.3]);

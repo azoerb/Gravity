@@ -171,7 +171,7 @@
 	var lightDiffColor = [0.7, 0.7, 0.7];
 	var lightSpecColor = [0.4, 0.4, 0.4];
     
-    var rayLen = 20;
+    var rayLen = 10;
 	var rayIter = 0.001;
     
     var dist = 0;
@@ -557,23 +557,22 @@
             player.rotationVector[player.localX] = -90;
         }
     }
-    
-    function startRay() {
-		var rayDir = [player.globalPosition[0] + rayLen * Math.sin(degToRad(player.rotationVector[0])) * Math.cos(degToRad(player.rotationVector[1])),
-                      player.globalPosition[1] - rayLen * Math.sin(degToRad(player.rotationVector[1])),
-                      player.globalPosition[2] - rayLen * Math.cos(degToRad(player.rotationVector[0])) * Math.cos(degToRad(player.rotationVector[1]))];
-		return rayCheck(rayDir);
-	}
 	
-	function rayCheck (direction) {
+	function rayCheck(object) {
+        var rayDir = [player.globalPosition[player.localX] + player.invertX * rayLen * Math.sin(degToRad(player.invertY * player.rotationVector[player.localY])) * Math.cos(degToRad(player.invertZ * player.rotationVector[player.localZ])),
+                      player.globalPosition[player.localY] - player.invertY * rayLen * Math.sin(degToRad(player.invertX * player.rotationVector[player.localX])),
+                      player.globalPosition[player.localZ] - player.invertZ * rayLen * Math.cos(degToRad(player.invertY * player.rotationVector[player.localY])) * Math.cos(degToRad(player.invertZ * player.rotationVector[player.localZ]))];
+                      
+        debug("" + rayDir[player.localX] + " " + rayDir[player.localY] + " " + rayDir[player.localZ]);
+                      
 		for (var t = 0; t <= 1; t += rayIter) {
-			var rx = player.globalPosition[0] + ((direction[0] - player.globalPosition[0]) * t);
-			var ry = player.globalPosition[1] + ((direction[1] - player.globalPosition[1]) * t);
-			var rz = player.globalPosition[2] + ((direction[2] - player.globalPosition[2]) * t);
-			if (rx >= (test.globalPosition[0] - (0.5 * test.dimensions[0])) && rx <= (test.globalPosition[0] + (0.5 * test.dimensions[0]))) {
-				if (ry >= (test.globalPosition[1] - (0.5 * test.dimensions[1])) && ry <= (test.globalPosition[1] + (0.5 * test.dimensions[1]))) {
-					if (rz >= (test.globalPosition[2] - (0.5 * test.dimensions[2])) && rz <= (test.globalPosition[2] + (0.5 * test.dimensions[2]))) {
-						return test;
+			var rx = player.globalPosition[player.localX] + ((rayDir[player.localX] - player.globalPosition[player.localX]) * t);
+			var ry = player.globalPosition[player.localY] + ((rayDir[player.localY] - player.globalPosition[player.localY]) * t);
+			var rz = player.globalPosition[player.localZ] + ((rayDir[player.localZ] - player.globalPosition[player.localZ]) * t);
+			if (rx >= (object.globalPosition[player.localX] - (0.5 * object.dimensions[player.localX])) && rx <= (object.globalPosition[player.localX] + (0.5 * object.dimensions[player.localX]))) {
+				if (ry >= (object.globalPosition[player.localY] - (0.5 * object.dimensions[player.localY])) && ry <= (object.globalPosition[player.localY] + (0.5 * object.dimensions[player.localY]))) {
+					if (rz >= (object.globalPosition[player.localZ] - (0.5 * object.dimensions[player.localZ])) && rz <= (object.globalPosition[player.localZ] + (0.5 * object.dimensions[player.localZ]))) {
+						return object;
 					}
 				}
 			}
@@ -642,10 +641,12 @@
                 
         checkKeys();
                 
-        var minObj = startRay();
+        var minObj = rayCheck(test);
 		if (minObj != null) {
-			console.log(minObj.name);
-		}
+            //debug("Yep");
+		} else {
+            //debug("Nope");
+        }
     }
     
     function objAnimate(obj, timeDelta) {
@@ -686,15 +687,12 @@
 	
 	function handleMouseDown(evt) {
 		rayTracing = true;
-		var minObj = startRay();
-		if (minObj != null) {
-			//fall = true;
-		}
-		if (test.fall == false) {
+
+		/*if (test.fall == false) {
             test.fall = true;
         } else {
             test.fall = false;
-        }
+        }*/
         
 	}
 	
