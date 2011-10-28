@@ -8,6 +8,8 @@ function LevelObject(isTextured, isHudObject, textureImg) {
 	this.isModel = false;
 	this.isLit = false;
     this.shininess = 40;
+    
+
 
     this.texture;
     this.textureImg = textureImg;
@@ -123,11 +125,11 @@ function LevelObject(isTextured, isHudObject, textureImg) {
 		var dist2=0.0;
 		var dist3=0.0;
 		for(i=0;i<that.vertices.length-3;i+=3){
-				if(Math.abs(that.vertices[i]-that.vertices[i+3])>dist1)
+				if(Math.abs(that.vertices[i])>dist1)
 					dist1=Math.abs(that.vertices[i])
-				if(Math.abs(that.vertices[i+1]-that.vertices[i+4])>dist2)
+				if(Math.abs(that.vertices[i+1])>dist2)
 					dist2=Math.abs(that.vertices[i+1])
-				if(Math.abs(that.vertices[i+2]-that.vertices[i+5])>dist3)
+				if(Math.abs(that.vertices[i+2])>dist3)
 					dist3=Math.abs(that.vertices[i+2])
 				}
 		that.r[0]=dist1;
