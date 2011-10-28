@@ -17,6 +17,7 @@ function GameObject(globalPosition, mass, gravityVector, rotationVector, isTextu
     this.localY;
     this.localZ;
     
+    
     this.invertX;
     this.invertY;
     this.invertZ;
