@@ -141,7 +141,7 @@
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.4; // Higher = quicker ramp up
     var MOVEMENT_SPEED = -0.07;
-    var COLLISION_DISTANCE = .1;
+    var COLLISION_DISTANCE = .2;
     
     var canvas;
     
@@ -697,13 +697,12 @@
     
     function objAnimate(obj, timeDelta) {    
         var walls = [lvlTop, lvlBot, lvlRt, lvlLt, lvlBack, lvlFrnt];
-        var dist = checkCollision(obj, walls)) {
+        var dist = checkCollision(obj, walls);
 
-        if (dist[obj.localY] > obj.gravitySign * 9.8 * timeDelta / 5000.0) {
+        if (dist[obj.localY] > Math.abs(obj.gravitySign * 9.8 * timeDelta / 5000.0)) {
             obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
         } else {
-            console.log("sadioh");
-            obj.globalPosition[obj.localY] += obj.gravitySign * dist[obj.localY];
+            obj.globalPosition[obj.localY] += obj.gravitySign * (dist[obj.localY] - COLLISION_DISTANCE);
             obj.fall = false;
         }
     }
@@ -726,7 +725,6 @@
                 if (distance[obj1.localZ] < minDistance[obj1.localZ]) { minDistance[obj1.localZ] = distance[obj1.localZ]; }
             }
         }
-        console.log(minDistance[1]);
         return minDistance;
     }
     
