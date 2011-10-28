@@ -1,0 +1,23 @@
+# This file uses centimeters as units for non-parametric coordinates.
+
+mtllib LvlBack.mtl
+g default
+v -1.966755 1.966755 -1.966755
+v 1.966755 1.966755 -1.966755
+v -1.966755 -1.966755 -1.966755
+v 1.966755 -1.966755 -1.966755
+vt 0.001886 0.004201
+vt 0.998114 0.004201
+vt 0.001886 1.000429
+vt 0.998114 1.000429
+vn 0.000000 0.000000 -1.000000
+vn 0.000000 0.000000 -1.000000
+vn 0.000000 0.000000 -1.000000
+vn 0.000000 0.000000 -1.000000
+vn 0.000000 0.000000 -1.000000
+vn 0.000000 0.000000 -1.000000
+s off
+g polySurface12 polySurface11 polySurface9 polySurface7 polySurface5 polySurface3 polySurface1
+usemtl lambert10SG
+f 1/1/1 2/2/2 3/3/3
+f 3/3/4 2/2/5 4/4/6
