@@ -678,7 +678,7 @@
         
         if (player.fall) {
             debug("falling");
-            //objAnimate(player, timeDelta);
+            objAnimate(player, timeDelta);
         } else {
             debug("not falling");
         }
@@ -703,9 +703,12 @@
     }
     
     function checkCollision(obj1, obj2) {
-        if (Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]) > (obj1.dimensions[obj1.localX] + obj2.dimensions[obj1.localX]) / 2) { return false; }
-        if (Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]) > (obj1.dimensions[obj1.localY] + obj2.dimensions[obj1.localY]) / 2) { return false; }
-        if (Math.abs(obj1.globalPosition[obj1.localZ] - obj2.globalPosition[obj1.localZ]) > (obj1.dimensions[obj1.localZ] + obj2.dimensions[obj1.localZ]) / 2) { return false; }
+        distance = [0, 0, 0];
+        distance[0] = Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]) - (obj1.dimensions[obj1.localX] + obj2.dimensions[obj1.localX]) / 2);
+        distance[1] = Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]) - (obj1.dimensions[obj1.localY] + obj2.dimensions[obj1.localY]) / 2);
+        distance[2] = Math.abs(obj1.globalPosition[obj1.localZ] - obj2.globalPosition[obj1.localZ]) - (obj1.dimensions[obj1.localZ] + obj2.dimensions[obj1.localZ]) / 2);
+        
+        if (distance[0] > 0 || distance[1] > 0 || distance[2] > 0) { return false; }
     	
     	//console.log("collision y:"+Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]));
     	return true;
