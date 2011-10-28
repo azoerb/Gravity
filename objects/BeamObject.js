@@ -16,9 +16,9 @@
 			var angle = (x* 2 * pi) / repeatDist;
 			var ball1Pos = [Math.sin(angle) * radiusFactor, Math.cos(angle) * radiusFactor, -i];
 			var ball2Pos = [Math.sin(angle - pi) * radiusFactor, Math.cos(angle - pi) * radiusFactor, -i];
-			var ball1 = new GameObject("ball", ball1Pos , 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/ball.png");
+			var ball1 = new GameObject(ball1Pos , 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, "textures/ball.png");
 			ball1.loadModel("models/ball.obj");
-			var ball2 = new GameObject("ball", ball2Pos , 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/ball.png");
+			var ball2 = new GameObject(ball2Pos , 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, "textures/ball.png");
 			ball2.loadModel("models/ball.obj");
 			ball1.initObject();
 			ball2.initObject();

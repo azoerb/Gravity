@@ -159,6 +159,7 @@
     var currentTime;
     var oldTime;
     var fps;
+    var firstTimeThrough;
         
     var keyDown = new Array();
     var mousePos = vec3.create();
@@ -174,13 +175,9 @@
 	var lightDiffColor = [0.7, 0.7, 0.7];
 	var lightSpecColor = [0.4, 0.4, 0.4];
     
-    var rayLen = 20;
+    var rayLen = 5;
 	var rayIter = 0.001;
-    
-    var dist = 0;
-    var prevTime = 0;
-    var elapsed = 0;
-	
+
 	var rayTracing = false;
   
     function init() {
@@ -193,6 +190,8 @@
         document.onmousemove = handleMouseMove;
                 
         webGLStart(canvas);
+        
+        firstTimeThrough = true;
 
         setInterval(function() {
                     update();
@@ -233,34 +232,34 @@
     }
     
     function createObjects() {
-        player = new GameObject("Player", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, false, null);
+        player = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, null);
         
-        //cube = new GameObject("Cube", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
+        //cube = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
         //cube.loadModel("models/Level1.obj");
-        LvlTop=new LevelObject("top",[0,0,0],true,false,"textures/CubeTop.png");
-        LvlTop.loadModel("models/LvlTop.obj");
+        lvlTop = new LevelObject(true,false,"textures/CubeTop.png");
+        lvlTop.loadModel("models/lvlTop.obj");
         
-        LvlBot=new LevelObject("bottom",[0,0,0],true,false,"textures/CubeBot.png");
-        LvlBot.loadModel("models/LvlBot.obj");
+        lvlBot = new LevelObject(true,false,"textures/CubeBot.png");
+        lvlBot.loadModel("models/lvlBot.obj");
         
-        LvlLt=new LevelObject("left",[0,0,0],true,false,"textures/CubeLt.png");
-        LvlLt.loadModel("models/LvlLft.obj");
+        lvlLt = new LevelObject(true,false,"textures/CubeLt.png");
+        lvlLt.loadModel("models/lvlLft.obj");
         
-        LvlRt=new LevelObject("right",[0,0,0],true,false,"textures/CubeRt.png");
-        LvlRt.loadModel("models/LvlRt.obj");
+        lvlRt = new LevelObject(true,false,"textures/CubeRt.png");
+        lvlRt.loadModel("models/lvlRt.obj");
         
-        LvlFrnt=new LevelObject("front",[0,0,0],true,false,"textures/CubeFrt.png");
-        LvlFrnt.loadModel("models/LvlFrnt.obj");
+        lvlFrnt = new LevelObject(true,false,"textures/CubeFrt.png");
+        lvlFrnt.loadModel("models/lvlFrnt.obj");
         
-        LvlBack=new LevelObject("back",[0,0,0],true,false,"textures/CubeBack.png");
-        LvlBack.loadModel("models/LvlBack.obj");
+        lvlBack = new LevelObject(true,false,"textures/CubeBack.png");
+        lvlBack.loadModel("models/lvlBack.obj");
         
         crosshair = new HUDObject("textures/Crosshair.png");
 		
-        test = new GameObject("test", [0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/ramp1-pCube1.jpg");
+        test = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube1.jpg");
 		test.loadModel("models/cube.obj");
 		
-		beam = new GameObject("beam", [0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, false, "textures/beam.png");
+		beam = new GameObject([0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, "textures/beam.png");
 		beam.loadModel("models/beam.obj");
         
         changeGravity();
@@ -398,12 +397,12 @@
         crosshair.initObject();
         
        // cube.initObject();
-       	LvlTop.initObject();
-       	LvlBot.initObject();
-       	LvlRt.initObject();
-       	LvlLt.initObject();
-       	LvlFrnt.initObject();
-       	LvlBack.initObject();
+       	lvlTop.initObject();
+       	lvlBot.initObject();
+       	lvlRt.initObject();
+       	lvlLt.initObject();
+       	lvlFrnt.initObject();
+       	lvlBack.initObject();
 		
 		test.initObject();
 		beam.initObject();
@@ -501,6 +500,7 @@
     
     function changeGravity() {
         gravToGlobal(player);
+        player.fall = true;
         if (!test.gravLocked) {
             test.gravityVector = player.gravityVector;
             gravToGlobal(test);
@@ -637,13 +637,13 @@
         
         mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
-        //Draw level walls
-		LvlTop.draw(lightShaderProgram);
-		LvlBot.draw(lightShaderProgram);
-		LvlRt.draw(lightShaderProgram);
-		LvlLt.draw(lightShaderProgram);
-		LvlFrnt.draw(lightShaderProgram);
-		LvlBack.draw(lightShaderProgram);
+        //cube.draw(lightShaderProgram);
+		lvlTop.draw(lightShaderProgram);
+		lvlBot.draw(lightShaderProgram);
+		lvlRt.draw(lightShaderProgram);
+		lvlLt.draw(lightShaderProgram);
+		lvlFrnt.draw(lightShaderProgram);
+		lvlBack.draw(lightShaderProgram);
 		
         mvPushMatrix();
 		mat4.translate(mvMatrix, test.globalPosition);
@@ -662,13 +662,25 @@
     }
 
     function update() {
-    	oldTime = currentTime;
+        if(firstTimeThrough){
+            oldTime = new Date();
+            currentTime = new Date();
+            firstTimeThrough = false;
+        }
+        oldTime = currentTime;
         currentTime = new Date();
         timeDelta = currentTime - oldTime;
         fps = 1000 / timeDelta;
-        
-		if(test.fall) {
+
+		if (test.fall) {
             objAnimate(test, timeDelta);
+        }
+        
+        if (player.fall) {
+            debug("falling");
+            objAnimate(player, timeDelta);
+        } else {
+            debug("not falling");
         }
         
         checkMouse();
@@ -677,37 +689,22 @@
                 
         var minObj = startRay();
 		if (minObj != null) {
-			console.log(minObj.name);
+            //
 		}
     }
     
     function objAnimate(obj, timeDelta) {
-        if (checkCollision(obj, LvlTop)&&checkCollision(obj, LvlBot)&&checkCollision(obj, LvlRt)&&checkCollision(obj, LvlLt)&&checkCollision(obj, LvlBack)&&checkCollision(obj, LvlFrnt)) {
- 				obj.globalPosition[obj.localY] += obj.gravitySign * 0.05;
-            	obj.fall = false;        
-            } 
-            else {
-            	obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
+        if (checkCollision(obj, lvlTop) || checkCollision(obj, lvlBot) || checkCollision(obj, lvlRt) || checkCollision(obj, lvlLt) || checkCollision(obj, lvlBack) || checkCollision(obj,lvlFrnt)) {
+            obj.fall = false;
+        } else {
+            obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;            
         }
     }
     
-  /*  function checkCollision(obj1, obj2) {
-    	//console.log(x,z);
-    	//check each vertex to see if it's hitting anything else
-        var dist;
-        dist = 1 - Math.abs(obj1.globalPosition[obj1.localY]);
-        debug("" + dist);
-        return dist;
-    }*/
-    function checkCollision(obj1,obj2){
-    
-    	if ( Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]) > (obj1.r[obj1.localX] + obj2.r[obj1.localX])) return false;
-    	if ( Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]) > (obj1.r[obj1.localY] + obj2.r[obj1.localY])) return false;
-    	if ( Math.abs(obj1.globalPosition[obj1.localZ] - obj2.globalPosition[obj1.localZ]) > (obj1.r[obj1.localZ] + obj2.r[obj1.localZ])) return false;
-    	
-    	console.log("collision x check:"+Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]));
-    	return true;
-
+    function checkCollision(obj1, obj2) {
+        if (Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj2.localX]) > (obj1.dimensions[obj1.localX] + obj2.dimensions[obj2.localX]) / 2) { return false; }
+        if (Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj2.localY]) > (obj1.dimensions[obj1.localY] + obj2.dimensions[obj2.localY]) / 2) { return false; }
+        if (Math.abs(obj1.globalPosition[obj1.localZ] - obj2.globalPosition[obj2.localZ]) > (obj1.dimensions[obj1.localZ] + obj2.dimensions[obj2.localZ]) / 2) { return false; }
     }
     
     function handleKeyDown(evt) {
@@ -734,6 +731,7 @@
 		if (minObj != null) {
 			//fall = true;
 		}
+        player.fall = true;
 		if (test.fall == false) {
             test.fall = true;
         } else {

@@ -1,16 +1,10 @@
-function LevelObject(name, globalPosition, isTextured, isHudObject, textureImg) {
+function LevelObject(isTextured, isHudObject, textureImg) {
     var that = this;
     
-    this.name = name; // Name of Object
-
-    this.localOffset = [0.0, 0.0, 0.0];
-    this.globalPosition = globalPosition; // Vec3 in global coords
-    
+    this.globalPosition = [0, 0, 0];
     this.dimensions = [0, 0, 0]; // Width, Height, Depth
     
-    
     this.isTextured = isTextured;
-    this.isHudObject = isHudObject;
 	this.isModel = false;
 	this.isLit = false;
     this.shininess = 40;
@@ -107,6 +101,9 @@ function LevelObject(name, globalPosition, isTextured, isHudObject, textureImg) 
         that.dimensions[0] = maxX - minX;
         that.dimensions[1] = maxY - minY;
 		that.dimensions[2] = maxZ - minZ;
+        that.globalPosition[0] = (maxX + minX) / 2;
+        that.globalPosition[1] = (maxY + minY) / 2;
+        that.globalPosition[2] = (maxZ + minZ) / 2;
 	}
     
     this.initObject = function() {

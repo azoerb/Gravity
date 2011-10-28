@@ -1,11 +1,8 @@
-function GameObject(name, globalPosition, mass, gravityVector, rotationVector, isTextured, isHudObject, textureImg) {
+function GameObject(globalPosition, mass, gravityVector, rotationVector, isTextured, textureImg) {
     var that = this;
-    
-    this.name = name; // Name of Object
 
-    this.localOffset = [0.0, 0.0, 0.0];
-    this.globalPosition = globalPosition; // Vec3 in global coords
-    
+    this.localOffset = [0, 0, 0];
+    this.globalPosition = globalPosition; // Vec3 in global coords    
     this.dimensions = [0, 0, 0]; // Width, Height, Depth
     
     this.mass = mass; // Mass of object in kg
@@ -29,7 +26,6 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
     this.gravitySign;
     
     this.isTextured = isTextured;
-    this.isHudObject = isHudObject;
 	this.isModel = false;
 	this.isLit = false;
     this.shininess = 40;
@@ -142,24 +138,6 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
 		that.normalBuffer.itemSize = 3;
         that.normalBuffer.numItems = that.normals.length / 3;
 		
-		//find half widths
-		
-		var dist1=0.0;
-		var dist2=0.0;
-		var dist3=0.0;
-		for(i=0;i<that.vertices.length;i+=3){
-				if(Math.abs(that.vertices[i])>dist1)
-					dist1=Math.abs(that.vertices[i])
-				if(Math.abs(that.vertices[i+1])>dist2)
-					dist2=Math.abs(that.vertices[i+1])
-				if(Math.abs(that.vertices[i+2])>dist3)
-					dist3=Math.abs(that.vertices[i+2])
-				}
-		that.r[0]=dist1;
-		that.r[1]=dist2;
-		that.r[2]=dist3;
-		console.log(that.r);
-		
         if (that.isTextured) {
             that.textCoordsBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, that.textCoordsBuffer);
@@ -223,9 +201,6 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
 		
         if (that.isTextured) {
             gl.enable(gl.BLEND);
-            if (that.isHudObject) {
-                gl.disable(gl.DEPTH_TEST);
-            }
             
             gl.bindBuffer(gl.ARRAY_BUFFER, that.textCoordsBuffer);
             gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, that.textCoordsBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -248,10 +223,7 @@ function GameObject(name, globalPosition, mass, gravityVector, rotationVector, i
 		} else {
 			gl.drawElements(gl.TRIANGLES, that.indicesBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 		}
-        
-        if (that.isHudObject) {
-            gl.enable(gl.DEPTH_TEST);
-        } 
+
         if (that.isTextured) {
             gl.disable(gl.BLEND);
         }
