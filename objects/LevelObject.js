@@ -7,7 +7,7 @@ function LevelObject(isTextured, isHudObject, textureImg) {
     this.isTextured = isTextured;
 	this.isModel = false;
 	this.isLit = false;
-    this.shininess = 40;
+    this.shininess = 1;
     
     this.localX = 0;
     this.localY = 1;
