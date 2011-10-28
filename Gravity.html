@@ -141,6 +141,7 @@
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.4; // Higher = quicker ramp up
     var MOVEMENT_SPEED = -0.07;
+    var COLLISION_DISTANCE = .1;
     
     var canvas;
     
@@ -233,6 +234,10 @@
     
     function createObjects() {
         player = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, null);
+        
+        player.dimensions[0] = .1;
+        player.dimensions[1] = .1;
+        player.dimensions[2] = .1;
         
         //cube = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
         //cube.loadModel("models/Level1.obj");
@@ -677,10 +682,7 @@
         }
         
         if (player.fall) {
-            debug("falling");
             objAnimate(player, timeDelta);
-        } else {
-            debug("not falling");
         }
         
         checkMouse();
@@ -693,26 +695,39 @@
 		}
     }
     
-    function objAnimate(obj, timeDelta) {
-        if (checkCollision(obj, lvlTop) || checkCollision(obj, lvlBot) || checkCollision(obj, lvlRt) || checkCollision(obj, lvlLt) || checkCollision(obj, lvlBack) || checkCollision(obj,lvlFrnt)) {
-            obj.fall = false;
-           // obj.globalPosition[obj.localY] += obj.gravitySign * 0.05;
+    function objAnimate(obj, timeDelta) {    
+        var walls = [lvlTop, lvlBot, lvlRt, lvlLt, lvlBack, lvlFrnt];
+        var dist = checkCollision(obj, walls)) {
+
+        if (dist[obj.localY] > obj.gravitySign * 9.8 * timeDelta / 5000.0) {
+            obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
         } else {
-            obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;            
+            console.log("sadioh");
+            obj.globalPosition[obj.localY] += obj.gravitySign * dist[obj.localY];
+            obj.fall = false;
         }
     }
     
-    function checkCollision(obj1, obj2) {
-        distance = [0, 0, 0];
-        distance[0] = Math.abs(obj1.globalPosition[obj1.localX] - obj2.globalPosition[obj1.localX]) - (obj1.dimensions[obj1.localX] + obj2.dimensions[obj1.localX]) / 2);
-        distance[1] = Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]) - (obj1.dimensions[obj1.localY] + obj2.dimensions[obj1.localY]) / 2);
-        distance[2] = Math.abs(obj1.globalPosition[obj1.localZ] - obj2.globalPosition[obj1.localZ]) - (obj1.dimensions[obj1.localZ] + obj2.dimensions[obj1.localZ]) / 2);
-        
-        if (distance[0] > 0 || distance[1] > 0 || distance[2] > 0) { return false; }
-    	
-    	//console.log("collision y:"+Math.abs(obj1.globalPosition[obj1.localY] - obj2.globalPosition[obj1.localY]));
-    	return true;
-    
+    function checkCollision(obj1, objArray) {
+        var distance = [0, 0, 0];
+        var minDistance = [0, 0, 0];
+        for (var i = 0; i < objArray.length; i++) {
+            distance[obj1.localX] = Math.abs(obj1.globalPosition[obj1.localX] - objArray[i].globalPosition[obj1.localX] - (obj1.dimensions[obj1.localX] + objArray[i].dimensions[obj1.localX]) / 2);
+            distance[obj1.localY] = Math.abs(obj1.globalPosition[obj1.localY] - objArray[i].globalPosition[obj1.localY] - (obj1.dimensions[obj1.localY] + objArray[i].dimensions[obj1.localY]) / 2);
+            distance[obj1.localZ] = Math.abs(obj1.globalPosition[obj1.localZ] - objArray[i].globalPosition[obj1.localZ] - (obj1.dimensions[obj1.localZ] + objArray[i].dimensions[obj1.localZ]) / 2);
+            
+            if (i == 0) {
+                minDistance[obj1.localX] = distance[obj1.localX];
+                minDistance[obj1.localY] = distance[obj1.localY];
+                minDistance[obj1.localZ] = distance[obj1.localZ];
+            } else {
+                if (distance[obj1.localX] < minDistance[obj1.localX]) { minDistance[obj1.localX] = distance[obj1.localX]; }
+                if (distance[obj1.localY] < minDistance[obj1.localY]) { minDistance[obj1.localY] = distance[obj1.localY]; }
+                if (distance[obj1.localZ] < minDistance[obj1.localZ]) { minDistance[obj1.localZ] = distance[obj1.localZ]; }
+            }
+        }
+        console.log(minDistance[1]);
+        return minDistance;
     }
     
     function handleKeyDown(evt) {
@@ -735,10 +750,6 @@
 	
 	function handleMouseDown(evt) {
 		rayTracing = true;
-		var minObj = startRay();
-		if (minObj != null) {
-			//fall = true;
-		}
         player.fall = true;
 		if (test.fall == false) {
             test.fall = true;
