@@ -563,7 +563,7 @@
                       player.globalPosition[player.localY] - player.invertY * rayLen * Math.sin(degToRad(player.invertX * player.rotationVector[player.localX])),
                       player.globalPosition[player.localZ] - player.invertZ * rayLen * Math.cos(degToRad(player.invertY * player.rotationVector[player.localY])) * Math.cos(degToRad(player.invertZ * player.rotationVector[player.localZ]))];
                       
-        debug("" + rayDir[player.localX] + " " + rayDir[player.localY] + " " + rayDir[player.localZ]);
+        debug("" + rayDir[0] + " " + rayDir[1] + " " + rayDir[2]);
                       
 		for (var t = 0; t <= 1; t += rayIter) {
 			var rx = player.globalPosition[player.localX] + ((rayDir[player.localX] - player.globalPosition[player.localX]) * t);
@@ -613,7 +613,10 @@
 		
         mvPushMatrix();
 		mat4.translate(mvMatrix, test.globalPosition);
+        mvPushMatrix();
+        mat4.scale(mvMatrix, [2.5, 2.5, 2.5]);
         test.draw(lightShaderProgram);
+        mvPopMatrix();
         
 		mvPopMatrix();
         mvPopMatrix();
@@ -636,6 +639,9 @@
 		if(test.fall) {
             objAnimate(test, timeDelta);
         }
+        if(player.fall) {
+            objAnimate(player, timeDelta);
+        }
         
         checkMouse();
                 
@@ -643,6 +649,7 @@
                 
         var minObj = rayCheck(test);
 		if (minObj != null) {
+            console.log("Yes");
             //debug("Yep");
 		} else {
             //debug("Nope");
@@ -653,7 +660,7 @@
         if (checkCollision(obj, cube) > 0.05) {
             obj.globalPosition[obj.localY] += obj.gravitySign * 9.8 * timeDelta / 5000.0;
         } else {
-            obj.globalPosition[obj.localY] += obj.gravitySign * 0.05;
+            obj.globalPosition[obj.localY] -= obj.gravitySign * 0.1;
             obj.fall = false;
         }
     }
@@ -662,8 +669,7 @@
     	//console.log(x,z);
     	//check each vertex to see if it's hitting anything else
         var dist;
-        dist = 1 - Math.abs(obj1.globalPosition[obj1.localY]);
-        debug("" + dist);
+        dist = 2 - Math.abs(obj1.globalPosition[obj1.localY]);
         return dist;
     }
     
@@ -687,6 +693,8 @@
 	
 	function handleMouseDown(evt) {
 		rayTracing = true;
+
+        player.fall = true;
 
 		/*if (test.fall == false) {
             test.fall = true;
