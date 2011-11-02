@@ -671,21 +671,45 @@
     }
     
     function startRay() {
-		var xRot = rayVector.localY;
-		var yRot = rayVector.localX;
-		var rayDir = [player.globalPosition[player.localX] + rayLen * Math.sin(degToRad(player.rotationVector[xRot])) * Math.cos(degToRad(player.rotationVector[yRot])),
-                      player.globalPosition[player.localY] -  rayLen * Math.sin(degToRad(player.rotationVector[yRot])),
-                      player.globalPosition[player.localZ] - rayLen * Math.cos(degToRad(player.rotationVector[xRot])) * Math.cos(degToRad(player.rotationVector[yRot]))];
-                      
-        
+		var negate;
+		var negate2;
+		var negate3;
+		var xRot;
+		var yRot;
+		if (player.localY == 1) {
+			xRot = rayVector.localY;// * rayVector.invertX;
+			yRot = rayVector.localX;// * rayVector.invertY;
+			negate = 1;
+			negate2 = -1;
+			negate3 = -1;
+			
+		}
+		else if (player.localY == 0) {
+			xRot = rayVector.localX;// * rayVector.invertX;
+			yRot = rayVector.localY;// * rayVector.invertY;
+			negate = -1;
+			negate2 = 1;
+			negate3 = -1;
+		}
+		else if (player.localY == 2) {
+			xRot = rayVector.localX;// * rayVector.invertX;
+			yRot = rayVector.localZ;// * rayVector.invertY;
+			negate = 1;
+			negate2 = -1;
+			negate3 = 1;
+		}
+		
+		var rayDir = [player.globalPosition[player.localX] + (negate * rayLen * Math.sin(degToRad(player.rotationVector[xRot])) * Math.cos(degToRad(player.rotationVector[yRot]))),
+                      player.globalPosition[player.localY] + (negate2 * rayLen * Math.sin(degToRad(player.rotationVector[yRot]))),
+                      player.globalPosition[player.localZ] + (negate3 *  rayLen * Math.cos(degToRad(player.rotationVector[xRot])) * Math.cos(degToRad(player.rotationVector[yRot])))];
 		return rayCheck(rayDir);
 	}
 	
 	function rayCheck (direction) {
 		for (var t = 0; t <= 1; t += rayIter) {
-			var rx = player.globalPosition[player.localX] + ((direction[player.localX] - player.globalPosition[player.localX]) * t);
-			var ry = player.globalPosition[player.localY] + ((direction[player.localY] - player.globalPosition[player.localY]) * t);
-			var rz = player.globalPosition[player.localZ] + ((direction[player.localZ] - player.globalPosition[player.localZ]) * t);
+			var rx = player.globalPosition[player.localX] + ((direction[0] - player.globalPosition[test.localX]) * t);
+			var ry = player.globalPosition[player.localY] + ((direction[1] - player.globalPosition[test.localY]) * t);
+			var rz = player.globalPosition[player.localZ] + ((direction[2] - player.globalPosition[test.localZ]) * t);
 			if (rx >= (test.globalPosition[test.localX] - (0.5 * test.dimensions[test.localX])) && rx <= (test.globalPosition[test.localX] + (0.5 * test.dimensions[test.localX]))) {
 				if (ry >= (test.globalPosition[test.localY] - (0.5 * test.dimensions[test.localY])) && ry <= (test.globalPosition[test.localY] + (0.5 * test.dimensions[test.localY]))) {
 					if (rz >= (test.globalPosition[test.localZ] - (0.5 * test.dimensions[test.localZ])) && rz <= (test.globalPosition[test.localZ] + (0.5 * test.dimensions[test.localZ]))) {
