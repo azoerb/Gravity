@@ -499,34 +499,32 @@
     }
            
     function checkKeys() {
-        var angle = degToRad(player.invertY * player.rotationVector[player.localY]);
+        var angle = player.invertY * player.rotationVector[player.localY];
         var down = false;
-        
-        debug("" + MOVEMENT_SPEED * Math.cos(degToRad(angle)));
-        
+                
         if (keyDown[87]) { // W
             down = true;
-            player.velocity[player.localX] = MOVEMENT_SPEED * Math.sin(degToRad(angle));
-            player.velocity[player.localZ] = MOVEMENT_SPEED * Math.cos(degToRad(angle));
+            player.velocity[player.localX] = player.invertX * MOVEMENT_SPEED * Math.sin(degToRad(angle));
+            player.velocity[player.localZ] = player.invertZ * MOVEMENT_SPEED * Math.cos(degToRad(angle));
         } else if (keyDown[83]) { // S
             down = true;
-            player.velocity[player.localX] = -MOVEMENT_SPEED * Math.sin(degToRad(angle));
-            player.velocity[player.localZ] = -MOVEMENT_SPEED * Math.cos(degToRad(angle));
+            player.velocity[player.localX] = -player.invertX * MOVEMENT_SPEED * Math.sin(degToRad(angle));
+            player.velocity[player.localZ] = -player.invertZ * MOVEMENT_SPEED * Math.cos(degToRad(angle));
         }
         
         if (keyDown[65]) { // A
             down = true;
-            player.velocity[player.localX] = MOVEMENT_SPEED * Math.sin(degToRad(-90.0 + angle));
-            player.velocity[player.localZ] = MOVEMENT_SPEED * Math.cos(degToRad(-90.0 + angle));
+            player.velocity[player.localX] = player.invertX * MOVEMENT_SPEED * Math.sin(degToRad(-90.0 + angle));
+            player.velocity[player.localZ] = player.invertZ * MOVEMENT_SPEED * Math.cos(degToRad(-90.0 + angle));
         } else if (keyDown[68]) { // D
             down = true;
-            player.velocity[player.localX] = -MOVEMENT_SPEED * Math.sin(degToRad(-90.0 + angle));
-            player.velocity[player.localZ] = -MOVEMENT_SPEED * Math.cos(degToRad(-90.0 + angle));
+            player.velocity[player.localX] = -player.invertX * MOVEMENT_SPEED * Math.sin(degToRad(-90.0 + angle));
+            player.velocity[player.localZ] = -player.invertZ * MOVEMENT_SPEED * Math.cos(degToRad(-90.0 + angle));
         }
         
         if (!down) {
-            player.velocity[0] = 0;
-            player.velocity[2] = 0;
+            player.velocity[player.localX] = 0;
+            player.velocity[player.localZ] = 0;
         }
         
         if (keyDown[37]) { // Left
@@ -835,18 +833,21 @@
 
         
             if (!collision[X]) {
-                obj.globalPosition[X] += timeDelta / 70 * obj.velocity[X];
+                obj.globalPosition[X] -= timeDelta / 70 * obj.velocity[X];
             } else {
+                console.log("Collision");
                 obj.velocity[X] = 0;
             }
             if (!collision[Y]) {
                 obj.globalPosition[Y] += timeDelta / 1000 * obj.velocity[Y];
             } else {
+                console.log("Collision");
                 obj.velocity[Y] = 0;
             }
             if (!collision[Z]) {
                 obj.globalPosition[Z] += timeDelta / 70 * obj.velocity[Z];
             } else {
+                console.log("Collision");
                 obj.velocity[Z] = 0;
             }
         }
