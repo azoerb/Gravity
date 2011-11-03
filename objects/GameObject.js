@@ -1,7 +1,7 @@
 function GameObject(globalPosition, mass, gravityVector, rotationVector, isTextured, textureImg) {
     var that = this;
 
-    this.localOffset = [0, 0, 0];
+    this.velocity = [0, 0, 0];
     this.globalPosition = globalPosition; // Vec3 in global coords    
     this.dimensions = [0, 0, 0]; // Width, Height, Depth
     
