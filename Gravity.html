@@ -297,7 +297,7 @@
     }
     
     function createObjects() {
-        player = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, null);
+        player = new GameObject([0.2, 0.0, 0.2], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], false, null);
         
         player.dimensions[0] = .1;
         player.dimensions[1] = .1;
@@ -697,9 +697,15 @@
 		*/
         
         if (keyDown[82]) { // R (Reset)
-            player.globalPosition = [0, 0, 0];
+            player.globalPosition = [.2, 0, .2];
             player.gravityVector = [0, -1, 0];
-            player.velocity = [0,0,0];
+            player.velocity = [0, 0, 0];
+            player.fall = true;
+            
+            test.globalPosition = [0, 0, 0];
+            test.gravityVector = [0, -1, 0];
+            test.velocity = [0, 0, 0];
+            test.fall = true;
         }
     }
     
@@ -976,7 +982,7 @@
 			}
 			gl.useProgram(lightShaderProgram);
 			mvPopMatrix();
-			if(level==1)
+			if(level==1) {
 				mvPushMatrix();
 				mat4.translate(mvMatrix, sensor.globalPosition);
 				sensor.draw(lightShaderProgram);
