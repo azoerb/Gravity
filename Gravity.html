@@ -192,10 +192,14 @@
 	var lightDiffColor = [0.7, 0.7, 0.7];
 	var lightSpecColor = [0.4, 0.4, 0.4];
     
-    var rayLen = 5;
+    var rayLen = 10;
 	var rayIter = 0.001;
 	var rayTracing = false;
+	var rayTracing2 = false;
+	var spacePressed = false;
     var rayVector = new rayVec();
+	
+	var rayObjects = [];
     
 	var showMenu = false;
   
@@ -260,23 +264,29 @@
         
         //cube = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, false, "textures/checker1-pCube1.1.jpg");
         //cube.loadModel("models/Level1.obj");
-        lvlTop = new LevelObject(true,false,"textures/CubeTop.png");
+        lvlTop = new LevelObject(true,false,"up","textures/CubeTop.png");
         lvlTop.loadModel("models/lvlTop.obj");
+		rayObjects[rayObjects.length] = lvlTop;
         
-        lvlBot = new LevelObject(true,false,"textures/CubeBot.png");
+        lvlBot = new LevelObject(true,false,"down","textures/CubeBot.png");
         lvlBot.loadModel("models/lvlBot.obj");
+		rayObjects[rayObjects.length] = lvlBot;
         
-        lvlLt = new LevelObject(true,false,"textures/CubeLt.png");
+        lvlLt = new LevelObject(true,false,"left","textures/CubeLt.png");
         lvlLt.loadModel("models/lvlLft.obj");
+		rayObjects[rayObjects.length] = lvlLt;
         
-        lvlRt = new LevelObject(true,false,"textures/CubeRt.png");
+        lvlRt = new LevelObject(true,false,"right","textures/CubeRt.png");
         lvlRt.loadModel("models/lvlRt.obj");
+		rayObjects[rayObjects.length] = lvlRt;
         
-        lvlFrnt = new LevelObject(true,false,"textures/CubeFrt.png");
+        lvlFrnt = new LevelObject(true,false,"front","textures/CubeFrt.png");
         lvlFrnt.loadModel("models/lvlFrnt.obj");
+		rayObjects[rayObjects.length] = lvlFrnt;
         
-        lvlBack = new LevelObject(true,false,"textures/CubeBack.png");
+        lvlBack = new LevelObject(true,false,"back","textures/CubeBack.png");
         lvlBack.loadModel("models/lvlBack.obj");
+		rayObjects[rayObjects.length] = lvlBack;
         
         crosshair = new HUDObject("textures/Crosshair.png");
 		title = new HUDObject("images/title.png");
@@ -284,9 +294,13 @@
 		
         test = new GameObject([0.0, 0.0, 0.0], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube1.jpg");
 		test.loadModel("models/cube.obj");
+		rayObjects[rayObjects.length] = test;
 		
 		beam = new GameObject([0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, "textures/beam.png");
 		beam.loadModel("models/beam.obj");
+		
+		beam2 = new GameObject([0.0, 0.0, 0.0], 60.0, [0.0, -1.0, 0.0], [0.0, 0.0, 0.0], true, "textures/beam2.png");
+		beam2.loadModel("models/beam.obj");
 		
 		sensor = new GameObject([0.0,1.85,0.0], 60.0, [0, -1,0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube2.jpg");
 		sensor.loadModel("models/sensor.obj");
@@ -469,6 +483,7 @@
 		
 		test.initObject();
 		beam.initObject();
+		beam2.initObject();
 		sensor.initObject();
 		door.initObject();
     }
@@ -528,7 +543,12 @@
             player.velocity[player.localX] = 0;
             player.velocity[player.localZ] = 0;
         }
-        
+		if (keyDown[32]) { //space
+			spacePressed = true;
+		} else {
+			spacePressed = false;
+		}
+        /*
         if (keyDown[37]) { // Left
             player.gravityVector = [-1, 0, 0];
             changeGravity();
@@ -551,6 +571,7 @@
             player.globalPosition = [0, 0, 0];
             player.gravityVector = [0, -1, 0];
         }
+		*/
     }
     
 	function rayVec() {
@@ -697,16 +718,17 @@
 			var rx = player.globalPosition[0] + ((direction[0] - player.globalPosition[0]) * t);
 			var ry = player.globalPosition[1] + ((direction[1] - player.globalPosition[1]) * t);
 			var rz = player.globalPosition[2] + ((direction[2] - player.globalPosition[2]) * t);
-			if (rx >= (test.globalPosition[0] - (0.5 * test.dimensions[test.localX])) && rx <= (test.globalPosition[0] + (0.5 * test.dimensions[test.localX]))) {
-				if (ry >= (test.globalPosition[1] - (0.5 * test.dimensions[test.localY])) && ry <= (test.globalPosition[1] + (0.5 * test.dimensions[test.localY]))) {
-					if (rz >= (test.globalPosition[2] - (0.5 * test.dimensions[test.localZ])) && rz <= (test.globalPosition[2] + (0.5 * test.dimensions[test.localZ]))) {
-						//debug("test");
-						return test;
+			for (var i = 0; i < rayObjects.length; i++) {
+				if (rx >= (rayObjects[i].globalPosition[0] - (0.5 * rayObjects[i].dimensions[0])) && rx <= (rayObjects[i].globalPosition[0] + (0.5 * rayObjects[i].dimensions[0]))) {
+					if (ry >= (rayObjects[i].globalPosition[1] - (0.5 * rayObjects[i].dimensions[1])) && ry <= (rayObjects[i].globalPosition[1] + (0.5 * rayObjects[i].dimensions[1]))) {
+						if (rz >= (rayObjects[i].globalPosition[2] - (0.5 * rayObjects[i].dimensions[2])) && rz <= (rayObjects[i].globalPosition[2] + (0.5 * rayObjects[i].dimensions[2]))) {
+							console.log("object: " + i);
+							return rayObjects[i];
+						}
 					}
 				}
 			}
 		}
-        //debug("no test");
 		return null;
 	}
     
@@ -736,7 +758,9 @@
 			if (rayTracing) {
 				drawBeam();
 			}
-			
+			if (rayTracing2) {
+				drawBeam2();
+			}
 			// Draw Cube
 			gl.useProgram(lightShaderProgram);
 			mvPushMatrix();
@@ -808,8 +832,7 @@
 		if(!showMenu) {
 			checkKeys();
             updatePositions(moveables, timeDelta);
-            
-            var minObj = startRay();
+            //var minObj = startRay();
         }
     }
     
@@ -837,19 +860,19 @@
             if (!collision[X]) {
                 obj.globalPosition[X] -= timeDelta / 70 * obj.velocity[X];
             } else {
-                console.log("Collision");
+                //console.log("Collision");
                 obj.velocity[X] = 0;
             }
             if (!collision[Y]) {
                 obj.globalPosition[Y] += timeDelta / 1000 * obj.velocity[Y];
             } else {
-                console.log("Collision");
+                //console.log("Collision");
                 obj.velocity[Y] = 0;
             }
             if (!collision[Z]) {
                 obj.globalPosition[Z] += timeDelta / 70 * obj.velocity[Z];
             } else {
-                console.log("Collision");
+                //console.log("Collision");
                 obj.velocity[Z] = 0;
             }
         }
@@ -901,16 +924,49 @@
 	
 	function handleMouseDown(evt) {
 		if (!showMenu) {
-			rayTracing = true;
-			var minObj = startRay();
-			if (minObj != null) {
-				//Do stuff
+			if (!spacePressed) {
+				rayTracing = true;
+				var minObj = startRay();
+				if (minObj != null) {
+					if (minObj.pos != null) {
+						if (minObj.pos == "right") { // Left
+							player.gravityVector = [-1, 0, 0];
+							changeGravity();
+						} else if (minObj.pos == "up") { // Up
+							player.gravityVector = [0, 1, 0];
+							changeGravity();
+						} else if (minObj.pos == "left") { // Right
+							player.gravityVector = [1, 0, 0];
+							changeGravity();
+						} else if (minObj.pos == "down") { // Down
+							player.gravityVector = [0, -1, 0];
+							changeGravity();
+						} else if (minObj.pos == "back") { // F (Front)
+							player.gravityVector = [0, 0, -1];
+							changeGravity();
+						} else if (minObj.pos == "front") { // B (Back)
+							player.gravityVector = [0, 0, 1];
+							changeGravity();
+						}
+					}
+				}
+			}
+			else {
+				rayTracing2 = true;
+				var minObj = startRay();
+				if (minObj != null) {
+					if (minObj.gravLocked != null) {
+						minObj.gravLocked = !minObj.gravLocked;
+					}
+				}
+			
 			}
 		}
 	}
 	
 	function handleMouseUp(evt) {
 		rayTracing = false;
+		rayTracing2 = false;
 	}
     
     function handleMouseClick(evt) {

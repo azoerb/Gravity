@@ -1,9 +1,11 @@
-function LevelObject(isTextured, isHudObject, textureImg) {
+function LevelObject(isTextured, isHudObject, pos, textureImg) {
     var that = this;
     
     this.globalPosition = [0, 0, 0];
     this.dimensions = [0, 0, 0]; // Width, Height, Depth
     
+	this.pos = pos;
+	
     this.isTextured = isTextured;
 	this.isModel = false;
 	this.isLit = false;
@@ -112,6 +114,8 @@ function LevelObject(isTextured, isHudObject, textureImg) {
         that.globalPosition[0] = (maxX + minX) / 2;
         that.globalPosition[1] = (maxY + minY) / 2;
         that.globalPosition[2] = (maxZ + minZ) / 2;
+		console.log("dim: " + that.dimensions);
+		console.log("pos: " + that.globalPosition);
 	}
     
     this.initObject = function() {
