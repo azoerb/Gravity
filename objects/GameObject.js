@@ -30,6 +30,9 @@ function GameObject(globalPosition, mass, gravityVector, rotationVector, isTextu
 	this.isModel = false;
 	this.isLit = false;
     this.shininess = 40;
+    this.rayHit=false;
+    this.glowBegin;
+    this.glowCurrent;
 
     this.texture;
     this.textureImg = textureImg;

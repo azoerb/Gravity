@@ -10,6 +10,9 @@ function LevelObject(isTextured, isHudObject, pos, textureImg) {
 	this.isModel = false;
 	this.isLit = false;
     this.shininess = 1;
+    this.rayHit=false;
+    this.glowBegin;
+    this.glowCurrent;
     
     this.localX = 0;
     this.localY = 1;

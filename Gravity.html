@@ -41,11 +41,40 @@
 
     void main(void) {
         vec4 color = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-        gl_FragColor = vec4 (color.r * color.a, color.g * color.a, color.b * color.a, color.a);
+        gl_FragColor = vec4 (color.r*color.a , color.g*color.a , color.b*color.a , color.a);
     }
 </script>
 
 <script id="texture-shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec2 vTextureCoord;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aTextureCoord;
+	}
+	</script>
+<script id="glow-texture-shader-fs" type="x-shader/x-fragment">
+    #ifdef GL_ES
+        precision highp float;
+    #endif
+
+    varying vec2 vTextureCoord;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        vec4 color = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        gl_FragColor = vec4 (color.r*3.0 , color.g*3.0 , color.b*3.0 , color.a);
+    }
+</script>
+
+<script id="glow-texture-shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
     attribute vec2 aTextureCoord;
 
@@ -150,6 +179,7 @@
     var shaderProgram;
     var lightShaderProgram;
     var textureShaderProgram;
+    var glowTextureShaderProgram;
     
     var mvMatrix = mat4.create();
     var mvMatrixStack = [];
@@ -396,6 +426,28 @@
         textureShaderProgram.pMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uPMatrix");
         textureShaderProgram.mvMatrixUniform = gl.getUniformLocation(textureShaderProgram, "uMVMatrix");
         textureShaderProgram.samplerUniform = gl.getUniformLocation(textureShaderProgram, "uSampler");
+        //Glow texture shader
+        var glowTextureFragmentShader = getShader(gl, "glow-texture-shader-fs");
+        var glowTextureVertexShader = getShader(gl, "glow-texture-shader-vs");
+        
+        glowTextureShaderProgram = gl.createProgram();
+        gl.attachShader(glowTextureShaderProgram, glowTextureVertexShader);
+        gl.attachShader(glowTextureShaderProgram, glowTextureFragmentShader);
+        gl.linkProgram(glowTextureShaderProgram);
+        
+        if (!gl.getProgramParameter(glowTextureShaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+        
+        glowTextureShaderProgram.vertexPositionAttribute = gl.getAttribLocation(glowTextureShaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(glowTextureShaderProgram.vertexPositionAttribute);
+        
+        glowTextureShaderProgram.textureCoordAttribute = gl.getAttribLocation(glowTextureShaderProgram, "aTextureCoord");
+        gl.enableVertexAttribArray(glowTextureShaderProgram.textureCoordAttribute);
+        
+        glowTextureShaderProgram.pMatrixUniform = gl.getUniformLocation(glowTextureShaderProgram, "uPMatrix");
+        glowTextureShaderProgram.mvMatrixUniform = gl.getUniformLocation(glowTextureShaderProgram, "uMVMatrix");
+        glowTextureShaderProgram.samplerUniform = gl.getUniformLocation(glowTextureShaderProgram, "uSampler");
 		
         // Light Shaders
         var lightFragmentShader = getShader(gl, "light-shader-fs");
@@ -725,6 +777,8 @@
 					if (ry >= (rayObjects[i].globalPosition[1] - (0.5 * rayObjects[i].dimensions[1])) && ry <= (rayObjects[i].globalPosition[1] + (0.5 * rayObjects[i].dimensions[1]))) {
 						if (rz >= (rayObjects[i].globalPosition[2] - (0.5 * rayObjects[i].dimensions[2])) && rz <= (rayObjects[i].globalPosition[2] + (0.5 * rayObjects[i].dimensions[2]))) {
 							console.log("object: " + i);
+							rayObjects[i].rayHit=true;
+							rayObjects[i].glowBegin=new Date();
 							return rayObjects[i];
 						}
 					}
@@ -782,17 +836,48 @@
 			mat4.translate(mvMatrix, [-player.globalPosition[0], -player.globalPosition[1], -player.globalPosition[2]]);
 
 			//cube.draw(lightShaderProgram);
-			lvlTop.draw(lightShaderProgram);
+			
+			for(i=0;i<walls.length;i++){
+				if(walls[i].rayHit){
+					gl.useProgram(glowTextureShaderProgram);
+					walls[i].isLit=false;
+					walls[i].draw(glowTextureShaderProgram);
+					walls[i].glowCurrent=new Date();
+					if(walls[i].glowCurrent-walls[i].glowBegin >500){
+						walls[i].rayHit=false;
+						walls[i].isLit=true;
+						}
+				}
+				else{
+					walls[i].draw(lightShaderProgram);
+				}
+			}
+			/*walls[0].draw(lightShaderProgram);
 			lvlBot.draw(lightShaderProgram);
 			lvlRt.draw(lightShaderProgram);
 			lvlLt.draw(lightShaderProgram);
 			lvlFrnt.draw(lightShaderProgram);
-			lvlBack.draw(lightShaderProgram);
+			lvlBack.draw(lightShaderProgram);*/
 			
 			mvPushMatrix();
+			if(test.rayHit){
+				gl.useProgram(glowTextureShaderProgram);
+				mat4.translate(mvMatrix, test.globalPosition);
+				test.isLit=false;
+				test.draw(glowTextureShaderProgram);
+				test.glowCurrent=new Date();
+				console.log(test.glowCurrent+","+test.glowBegin);
+				if(test.glowCurrent - test.glowBegin > 500){
+					console.log(test.glowCurrent-test.glowBegin);
+					test.rayHit=false;
+					test.isLit=true;
+				}
+			}
+			else{
 			mat4.translate(mvMatrix, test.globalPosition);
 			test.draw(lightShaderProgram);
-			
+			}
+			gl.useProgram(lightShaderProgram);
 			mvPopMatrix();
 			mvPushMatrix();
 			mat4.translate(mvMatrix, sensor.globalPosition);
