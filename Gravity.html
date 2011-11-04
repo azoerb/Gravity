@@ -141,7 +141,7 @@
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.4; // Higher = quicker ramp up
     var MOVEMENT_SPEED = -0.07;
-    var COLLISION_DISTANCE = .2;
+    var COLLISION_DISTANCE = .3;
     
     var canvas;
     
@@ -197,7 +197,6 @@
 	var rayTracing = false;
 	var rayTracing2 = false;
 	var spacePressed = false;
-    var rayVector = new rayVec();
 	
 	var rayObjects = [];
     
@@ -572,15 +571,16 @@
             player.gravityVector = [0, -1, 0];
         }
 		*/
+        
+        if (keyDown[82]) { // R (Reset)
+            player.globalPosition = [0, 0, 0];
+            player.gravityVector = [0, -1, 0];
+            player.velocity = [0,0,0];
+        }
     }
-    
-	function rayVec() {
-		this.gravityVector = [0,-1,0];
-	}
     
     function changeGravity() {
         gravToGlobal(player);
-		gravToGlobal(rayVector);
 		gravToGlobal(door);
 		gravToGlobal(sensor);
         player.fall = true;
@@ -854,42 +854,50 @@
             var Y = obj.localY;
             var Z = obj.localZ;
             
-            var collision = checkCollision(obj, walls);
-
+            var collision = checkCollision(obj, walls, timeDelta);
         
-            if (!collision[X]) {
+            if (!collision) {
                 obj.globalPosition[X] -= timeDelta / 70 * obj.velocity[X];
-            } else {
-                //console.log("Collision");
-                obj.velocity[X] = 0;
-            }
-            if (!collision[Y]) {
                 obj.globalPosition[Y] += timeDelta / 1000 * obj.velocity[Y];
-            } else {
-                //console.log("Collision");
-                obj.velocity[Y] = 0;
-            }
-            if (!collision[Z]) {
                 obj.globalPosition[Z] += timeDelta / 70 * obj.velocity[Z];
             } else {
-                //console.log("Collision");
+                console.log("Collision");
+                obj.fall = false;
+                obj.velocity[X] = 0;
+                obj.velocity[Y] = 0;
                 obj.velocity[Z] = 0;
             }
         }
     }
     
-    function checkCollision(obj, objArray) {
+    function checkCollision(obj, objArray, timeDelta) {
         var collisions = [false, false, false];
-        var distance = [0, 0, 0];
-        var minDistance = [0, 0, 0];
+        //var distance = [0, 0, 0];
+        //var minDistance = [0, 0, 0];
+        
+        var X = obj.localX; var Y = obj.localY; var Z = obj.localZ;
+        var x1 = obj.globalPosition[X] - timeDelta / 70 * obj.velocity[X];
+        var y1 = obj.globalPosition[Y] + timeDelta / 1000 * obj.velocity[Y];
+        var z1 = obj.globalPosition[Z] + timeDelta / 70 * obj.velocity[Z];
+        
         for (var i = 0; i < objArray.length; i++) {
-            distance[obj.localX] = Math.abs(obj.globalPosition[obj.localX] - objArray[i].globalPosition[obj.localX] - (obj.dimensions[obj.localX] + objArray[i].dimensions[obj.localX]) / 2);
-            distance[obj.localY] = Math.abs(obj.globalPosition[obj.localY] - objArray[i].globalPosition[obj.localY] - (obj.dimensions[obj.localY] + objArray[i].dimensions[obj.localY]) / 2);
-            distance[obj.localZ] = Math.abs(obj.globalPosition[obj.localZ] - objArray[i].globalPosition[obj.localZ] - (obj.dimensions[obj.localZ] + objArray[i].dimensions[obj.localZ]) / 2);
+            var obj2 = objArray[i];
             
-            if (distance[obj.localX] < COLLISION_DISTANCE) { collisions[obj.localX] = true; }
+            var x2 = obj2.globalPosition[X];
+            var y2 = obj2.globalPosition[Y];
+            var z2 = obj2.globalPosition[Z];
+            
+            if (Math.abs(x1 - x2) < (obj.dimensions[X] + obj2.dimensions[X]) / 2 + COLLISION_DISTANCE) {
+                if (Math.abs(y1 - y2) < (obj.dimensions[Y] + obj2.dimensions[Y]) / 2 + COLLISION_DISTANCE) {
+                    if (Math.abs(z1 - z2) < (obj.dimensions[Z] + obj2.dimensions[Z]) / 2 + COLLISION_DISTANCE) {
+                        return true;
+                    }
+                }
+            }
+            
+            /*if (distance[obj.localX] < COLLISION_DISTANCE) { collisions[obj.localX] = true; }
             if (distance[obj.localY] < COLLISION_DISTANCE) { collisions[obj.localY] = true; }
-            if (distance[obj.localZ] < COLLISION_DISTANCE) { collisions[obj.localZ] = true; }
+            if (distance[obj.localZ] < COLLISION_DISTANCE) { collisions[obj.localZ] = true; }*/
             
             /*if (i == 0) {
                 minDistance[obj.localX] = distance[obj.localX];
@@ -901,7 +909,7 @@
                 if (distance[obj.localZ] < minDistance[obj.localZ]) { minDistance[obj.localZ] = distance[obj.localZ]; }
             }*/
         }
-        return collisions;
+        return false;
     }
     
     function handleKeyDown(evt) {
