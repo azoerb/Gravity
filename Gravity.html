@@ -203,6 +203,7 @@
 
 	var door;
 	var sensor;
+	var sensor2;
 	var drawDoor=false;
 	var doorOpened=false;
 	var doorCollide=false;
@@ -212,6 +213,17 @@
     var lvlLt;
     var lvlBack;
     var lvlFrnt;
+   	var lvlTop2;
+    var lvlBot2;
+    var lvlRt2;
+    var lvlLt2;
+    var lvlBack2;
+    var lvlFrnt2;
+    var lvlTop3;
+    var lvlBot3;
+    
+    var level=1;
+    var levelSetUp=false;
 	
     var walls;
     var fallables;
@@ -295,27 +307,70 @@
         //cube.loadModel("models/Level1.obj");
         lvlTop = new LevelObject(true,false,"up","textures/CubeTop.png");
         lvlTop.loadModel("models/lvlTop.obj");
-		rayObjects[rayObjects.length] = lvlTop;
+		//rayObjects[rayObjects.length] = lvlTop;
         
         lvlBot = new LevelObject(true,false,"down","textures/CubeBot.png");
         lvlBot.loadModel("models/lvlBot.obj");
-		rayObjects[rayObjects.length] = lvlBot;
+		//rayObjects[rayObjects.length] = lvlBot;
+		
+		lvlBot2 = new LevelObject(true,false,"down","textures/CubeBot.png");
+        lvlBot2.loadModel("models/lvlBot2.obj");
+		//rayObjects[rayObjects.length] = lvlBot2;
+		
+		lvlBot3 = new LevelObject(true,false,"down","textures/CubeBot.png");
+        lvlBot3.loadModel("models/lvlBot3.obj");
+		//rayObjects[rayObjects.length] = lvlBot3;
+		
+		lvlBot = new LevelObject(true,false,"down","textures/CubeBot.png");
+        lvlBot.loadModel("models/lvlBot.obj");
+		//rayObjects[rayObjects.length] = lvlBot;
         
         lvlLt = new LevelObject(true,false,"left","textures/CubeLt.png");
         lvlLt.loadModel("models/lvlLft.obj");
-		rayObjects[rayObjects.length] = lvlLt;
+		//rayObjects[rayObjects.length] = lvlLt;
+		
+		lvlLt2 = new LevelObject(true,false,"left","textures/CubeLt.png");
+        lvlLt2.loadModel("models/lvlLft2.obj");
+		//rayObjects[rayObjects.length] = lvlLt2;
+		
+		lvlTop2 = new LevelObject(true,false,"up","textures/CubeTop.png");
+        lvlTop2.loadModel("models/lvlTop2.obj");
+		//rayObjects[rayObjects.length] = lvlTop2;
+		
+		lvlTop3 = new LevelObject(true,false,"up","textures/CubeTop.png");
+        lvlTop3.loadModel("models/lvlTop3.obj");
+		//rayObjects[rayObjects.length] = lvlTop3;
+		
+		
         
         lvlRt = new LevelObject(true,false,"right","textures/CubeRt.png");
         lvlRt.loadModel("models/lvlRt.obj");
-		rayObjects[rayObjects.length] = lvlRt;
-        
+		//rayObjects[rayObjects.length] = lvlRt;
+		
+         lvlRt2 = new LevelObject(true,false,"right","textures/CubeRt.png");
+        lvlRt2.loadModel("models/lvlRt2.obj");
+		//rayObjects[rayObjects.length] = lvlRt2;
+		
         lvlFrnt = new LevelObject(true,false,"front","textures/CubeFrt.png");
         lvlFrnt.loadModel("models/lvlFrnt.obj");
-		rayObjects[rayObjects.length] = lvlFrnt;
+		//rayObjects[rayObjects.length] = lvlFrnt;
+		
+		lvlFrnt2 = new LevelObject(true,false,"front","textures/CubeFrt.png");
+        lvlFrnt2.loadModel("models/lvlFrnt2.obj");
+		//rayObjects[rayObjects.length] = lvlFrnt2;
         
         lvlBack = new LevelObject(true,false,"back","textures/CubeBack.png");
         lvlBack.loadModel("models/lvlBack.obj");
-		rayObjects[rayObjects.length] = lvlBack;
+		//rayObjects[rayObjects.length] = lvlBack;
+		
+		lvlBack2 = new LevelObject(true,false,"back","textures/CubeBack.png");
+        lvlBack2.loadModel("models/lvlBack2.obj");
+		//rayObjects[rayObjects.length] = lvlBack2;
+		
+		lvlBack3 = new LevelObject(true,false,"back","textures/CubeBack.png");
+        lvlBack3.loadModel("models/lvlBack3.obj");
+		//rayObjects[rayObjects.length] = lvlBack3;
+        
         
         crosshair = new HUDObject("textures/Crosshair.png");
 		title = new HUDObject("images/title.png");
@@ -333,13 +388,24 @@
 		
 		sensor = new GameObject([0.0,1.85,0.0], 60.0, [0, -1,0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube2.jpg");
 		sensor.loadModel("models/sensor.obj");
+		
+		sensor2 = new GameObject([1.8,-1.85,-6], 60.0, [0, -1,0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube2.jpg");
+		sensor2.loadModel("models/sensor2.obj");
         
         sensor.dimensions[1] += .2;
 		
 		door = new GameObject([0, -1, 1.96], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, "textures/ramp2-pPlane1.jpg");
 		door.loadModel("models/door.obj");
         
-        walls = [lvlTop, lvlBot, lvlRt, lvlLt, lvlBack, lvlFrnt];
+        if(level==1){
+        	walls=[lvlTop, lvlBot, lvlLt, lvlRt, lvlBack, lvlFrnt];
+        	}
+        else if(level==2){	
+        	walls = [lvlTop, lvlBot, lvlTop2, lvlTop3, lvlBot2, lvlBot3, lvlRt, lvlRt2, lvlLt2, lvlFrnt, lvlFrnt2, lvlLt, lvlBack2, lvlBack3 /*, lvlLt, lvlBack, lvlFrnt*/];
+        }
+        for(i=0;i<walls.length;i++){
+        	rayObjects[rayObjects.length]=walls[i];
+        }
         moveables = [player, test];
         
         changeGravity();
@@ -527,17 +593,21 @@
         playButton.initObject();
         
        // cube.initObject();
-       	lvlTop.initObject();
+       for(i=0;i<walls.length;i++){
+       		walls[i].initObject();
+       		}
+       	/*lvlTop.initObject();
        	lvlBot.initObject();
        	lvlRt.initObject();
        	lvlLt.initObject();
        	lvlFrnt.initObject();
        	lvlBack.initObject();
-		
+		*/
 		test.initObject();
 		beam.initObject();
 		beam2.initObject();
 		sensor.initObject();
+		sensor2.initObject();
 		door.initObject();
     }
     
@@ -837,6 +907,33 @@
 
 			//cube.draw(lightShaderProgram);
 			
+			if(level==2 && !levelSetUp){
+				player.globalPosition[0]=0;
+				player.globalPosition[1]=0;
+				player.globalPosition[2]=0;
+				
+				test.globalPosition[0]=0;
+				test.globalPosition[1]=0;
+				test.globalPosition[2]=0;
+				
+				test.gravLocked=false;
+				
+				walls.length=0
+				walls = [lvlTop, lvlBot, lvlTop2, lvlTop3, lvlBot2, lvlBot3, lvlRt, lvlRt2, lvlLt2, lvlFrnt, lvlFrnt2, lvlLt, lvlBack2, lvlBack3];
+				for(i=0;i<walls.length;i++){
+       				walls[i].initObject();
+       			}
+				console.log("walls"+walls.length);
+				rayObjects.length=0;
+				rayObjects[rayObjects.length]=test;
+				for(j=0;j<walls.length;j++){
+					rayObjects[rayObjects.length]=walls[j];
+				}
+				drawDoor=false;
+				levelSetUp=true;
+				
+				changeGravity();
+			}
 			for(i=0;i<walls.length;i++){
 				if(walls[i].rayHit){
 					gl.useProgram(glowTextureShaderProgram);
@@ -879,9 +976,16 @@
 			}
 			gl.useProgram(lightShaderProgram);
 			mvPopMatrix();
+			if(level==1)
+				mvPushMatrix();
+				mat4.translate(mvMatrix, sensor.globalPosition);
+				sensor.draw(lightShaderProgram);
+			
+				mvPopMatrix();
+			}
 			mvPushMatrix();
-			mat4.translate(mvMatrix, sensor.globalPosition);
-       	 	sensor.draw(lightShaderProgram);
+			mat4.translate(mvMatrix, sensor2.globalPosition);
+       	 	sensor2.draw(lightShaderProgram);
         
 			mvPopMatrix();
 			if(drawDoor){
@@ -943,12 +1047,16 @@
             var Z = obj.localZ;
             
             var collision = checkCollision(obj, walls, timeDelta);
-        	sensorArray=[sensor];
+        	sensorArray=[sensor,sensor2];
         	if(checkCollision(test,sensorArray,timeDelta)){
         		drawDoor=true;
         			doorArray=[door];
-        			if(checkCollision(player,doorArray,timeDelta))
-        				alert("Level Complete");
+        			if(checkCollision(player,doorArray,timeDelta)){
+        					debug("LEVEL COMPLETE");
+        					level=2;
+        					drawDoor=false;
+        					//drawScene();
+        				}
         		}
         	else{
         		drawDoor=false;
