@@ -141,7 +141,7 @@
     var MOUSE_SENSITIVITY = 0.7; // Higher = more sensitive
     var MOUSE_EXPONENT = 1.4; // Higher = quicker ramp up
     var MOVEMENT_SPEED = -0.07;
-    var COLLISION_DISTANCE = .3;
+    var COLLISION_DISTANCE = .1;
     
     var canvas;
     
@@ -303,6 +303,8 @@
 		
 		sensor = new GameObject([0.0,1.85,0.0], 60.0, [0, -1,0], [0.0, 0.0, 0.0], true, "textures/ramp1-pCube2.jpg");
 		sensor.loadModel("models/sensor.obj");
+        
+        sensor.dimensions[1] += .2;
 		
 		door = new GameObject([0, -1, 1.96], 60.0, [0, -1, 0], [0.0, 0.0, 0.0], true, "textures/ramp2-pPlane1.jpg");
 		door.loadModel("models/door.obj");
@@ -894,20 +896,6 @@
                     }
                 }
             }
-            
-            /*if (distance[obj.localX] < COLLISION_DISTANCE) { collisions[obj.localX] = true; }
-            if (distance[obj.localY] < COLLISION_DISTANCE) { collisions[obj.localY] = true; }
-            if (distance[obj.localZ] < COLLISION_DISTANCE) { collisions[obj.localZ] = true; }*/
-            
-            /*if (i == 0) {
-                minDistance[obj.localX] = distance[obj.localX];
-                minDistance[obj.localY] = distance[obj.localY];
-                minDistance[obj.localZ] = distance[obj.localZ];
-            } else {
-                if (distance[obj.localX] < minDistance[obj.localX]) { minDistance[obj.localX] = distance[obj.localX]; }
-                if (distance[obj.localY] < minDistance[obj.localY]) { minDistance[obj.localY] = distance[obj.localY]; }
-                if (distance[obj.localZ] < minDistance[obj.localZ]) { minDistance[obj.localZ] = distance[obj.localZ]; }
-            }*/
         }
         return false;
     }
