@@ -919,6 +919,7 @@
 		if(!showMenu) {
 			checkKeys();
             updatePositions(moveables, timeDelta);
+            
             //var minObj = startRay();
         }
     }
@@ -942,7 +943,16 @@
             var Z = obj.localZ;
             
             var collision = checkCollision(obj, walls, timeDelta);
-        
+        	sensorArray=[sensor];
+        	if(checkCollision(test,sensorArray,timeDelta)){
+        		drawDoor=true;
+        			doorArray=[door];
+        			if(checkCollision(player,doorArray,timeDelta))
+        				alert("Level Complete");
+        		}
+        	else{
+        		drawDoor=false;
+        		}
             if (!collision) {
                 obj.globalPosition[X] -= timeDelta / 70 * obj.velocity[X];
                 obj.globalPosition[Y] += timeDelta / 1000 * obj.velocity[Y];
